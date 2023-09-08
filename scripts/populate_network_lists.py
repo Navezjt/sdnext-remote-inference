@@ -32,8 +32,6 @@ class LoadModelListError(Exception):
     def __init__(self, error, remote_service):
         super(f'Unable to fetch remote model list for {remote_service}: {error}')
 
-last_loaded_list = None
-
 def safeget(dct, *keys):
     for key in keys:
         try:
@@ -83,13 +81,17 @@ def list_remote_models():
 
     shared.log.info(f'Available models: {api_service} items={len(modules.sd_models.checkpoints_list)}')
 
-def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):
-    api_service = get_current_api_service()
+last_loaded_list = None
 
+def check_list_or_reload():
     global last_loaded_list
-    if last_loaded_list is None or last_loaded_list != api_service:
+    api_service = get_current_api_service()
+    if last_loaded_list  is None or last_loaded_list != api_service:
         list_remote_models()
         last_loaded_list = api_service
+
+def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):
+    check_list_or_reload()
     
     checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
     shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
@@ -102,7 +104,7 @@ def get_remote_preview_description_info(self, checkpoint_info):
     return preview, description, info
 
 def extra_networks_checkpoints_list_items(self):
-    self.refresh()
+    check_list_or_reload()
 
     checkpoint: RemoteCheckpointInfo
     for name, checkpoint in modules.sd_models.checkpoints_list.items():
@@ -122,6 +124,18 @@ def extra_networks_checkpoints_list_items(self):
             "metadata": checkpoint.metadata,
         }
 
-modules.sd_models.list_models = list_remote_models
-modules.sd_models.reload_model_weights = fake_reload_model_weights
-modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = extra_networks_checkpoints_list_items
+#========================= HOOK NEW FUNCTIONS =========================
+import copy
+def make_conditional_hook(func, replace_func):
+    func_copy = copy.deepcopy(func)
+    def wrap(*args, **kwargs):
+        api_service = get_current_api_service()
+        if api_service == RemoteService.Local:
+            return func_copy(*args, **kwargs)
+        else:
+            return replace_func(*args, **kwargs)
+    return wrap
+
+modules.sd_models.list_models = make_conditional_hook(modules.sd_models.list_models, list_remote_models)
+modules.sd_models.reload_model_weights = make_conditional_hook(modules.sd_models.reload_model_weights, fake_reload_model_weights)
+modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = make_conditional_hook(modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items, extra_networks_checkpoints_list_items)
