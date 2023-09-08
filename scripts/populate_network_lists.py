@@ -7,7 +7,7 @@ import modules.sd_models
 import modules.ui_extra_networks_checkpoints
 from modules import shared
 
-from scripts.remote_services_settings import RemoteService, get_current_api_service
+from extension.utils import RemoteService, default_endpoints, get_current_api_service, safeget, make_conditional_hook
 
 class RemoteCheckpointInfo(modules.sd_models.CheckpointInfo):
     def __init__(self, name, remote_service, preview_url=None, description=None, info=None):
@@ -32,14 +32,6 @@ class LoadModelListError(Exception):
     def __init__(self, error, remote_service):
         super(f'Unable to fetch remote model list for {remote_service}: {error}')
 
-def safeget(dct, *keys):
-    for key in keys:
-        try:
-            dct = dct[key]
-        except (KeyError,TypeError,IndexError):
-            return None
-    return dct
-
 def list_remote_models():
     api_service = get_current_api_service()
 
@@ -53,10 +45,11 @@ def list_remote_models():
         
         model_list = json.loads(model_list.content)
         for model in sorted(model_list, key=lambda model: str.lower(model['model_name'])):
-            RemoteCheckpointInfo(model['model_name'], RemoteService.SDNext)
+            RemoteCheckpointInfo(model['model_name'], api_service)
 
     elif api_service == RemoteService.StableHorde:
-        model_list = requests.get(shared.opts.horde_api_endpoint+"/v2/status/models", headers={'Client-Agent':'SD.Next Remote Inference:rolling:BinaryQuantumSoul'})
+        endpoint = shared.opts.data.get('shared.opts.horde_api_endpoint', default_endpoints[api_service])
+        model_list = requests.get(endpoint+"/v2/status/models", headers={'Client-Agent':'SD.Next Remote Inference:rolling:BinaryQuantumSoul'})
         if model_list.status_code != 200:
             raise LoadModelListError(api_service, model_list.content)
         
@@ -67,22 +60,22 @@ def list_remote_models():
         model_list = filter(lambda model: model['type'] == 'image', model_list)
         for model in reversed(sorted(model_list, key=lambda model: model['count'])):
             model_data = safeget(data_models, model['name'])
-            RemoteCheckpointInfo(f"{model['name']} ({model['count']})", RemoteService.StableHorde, safeget(model_data,'showcases',0), safeget(model_data,'description'))
+            RemoteCheckpointInfo(f"{model['name']} ({model['count']})", api_service, safeget(model_data,'showcases',0), safeget(model_data,'description'))
     
     elif api_service == RemoteService.OmniInfer:
-        model_list = requests.get(shared.opts.omniinfer_api_endpoint+"/v2/models")
+        endpoint = shared.opts.data.get('shared.opts.omniinfer_api_endpoint', default_endpoints[api_service])
+        model_list = requests.get(endpoint+"/v2/models")
         if model_list.status_code != 200:
             raise LoadModelListError(api_service, model_list.content)
         
         model_list = json.loads(model_list.content)['data']['models']
         model_list = filter(lambda model: model['type'] == 'checkpoint', model_list)
         for model in sorted(model_list, key=lambda model: str.lower(model['name'])):
-            RemoteCheckpointInfo(model['name'], RemoteService.OmniInfer, safeget(model, 'civitai_images', 0, 'url'))
+            RemoteCheckpointInfo(model['name'], api_service, safeget(model, 'civitai_images', 0, 'url'))
 
     shared.log.info(f'Available models: {api_service} items={len(modules.sd_models.checkpoints_list)}')
 
 last_loaded_list = None
-
 def check_list_or_reload():
     global last_loaded_list
     api_service = get_current_api_service()
@@ -123,18 +116,6 @@ def extra_networks_checkpoints_list_items(self):
             "local_preview": None,
             "metadata": checkpoint.metadata,
         }
-
-#========================= HOOK NEW FUNCTIONS =========================
-import copy
-def make_conditional_hook(func, replace_func):
-    func_copy = copy.deepcopy(func)
-    def wrap(*args, **kwargs):
-        api_service = get_current_api_service()
-        if api_service == RemoteService.Local:
-            return func_copy(*args, **kwargs)
-        else:
-            return replace_func(*args, **kwargs)
-    return wrap
 
 modules.sd_models.list_models = make_conditional_hook(modules.sd_models.list_models, list_remote_models)
 modules.sd_models.reload_model_weights = make_conditional_hook(modules.sd_models.reload_model_weights, fake_reload_model_weights)
