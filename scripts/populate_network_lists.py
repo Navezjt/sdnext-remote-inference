@@ -7,26 +7,17 @@ import modules.sd_models
 import modules.ui_extra_networks_checkpoints
 from modules import shared
 
-#=================== tmp here ===================
-from enum import Enum
-RemoteService = Enum('RemoteService', ['LOCAL', 'SDNEXT', 'HORDE', 'OMNIINFER'])
-
-sdnext_api_endpoint = 'https://127.0.0.1:7860'
-horde_api_endpoint = "https://stablehorde.net/api"
-omniinfer_api_endpoint = 'https://api.omniinfer.io'
-
-horde_client_agent = 'SD.Next Remote Inference:rolling:BinaryQuantumSoul'
-#=================== tmp here ===================
-
-api_service = RemoteService.HORDE
+from scripts.remote_services_settings import RemoteService, get_current_api_service
 
 class RemoteCheckpointInfo(modules.sd_models.CheckpointInfo):
-    def __init__(self, name, remote_service, civitai_id=None):
+    def __init__(self, name, remote_service, preview_url=None, description=None, info=None):
         self.name = self.name_for_extra = self.model_name = self.title = name
         self.type = f"remote ({remote_service})"
-
         self.remote_service = remote_service
-        self.civitai_id = civitai_id
+
+        self.preview_url = preview_url
+        self.description = description
+        self.info = info
 
         self.model_info = None
         self.metadata = {}
@@ -43,42 +34,58 @@ class LoadModelListError(Exception):
 
 last_loaded_list = None
 
+def safeget(dct, *keys):
+    for key in keys:
+        try:
+            dct = dct[key]
+        except (KeyError,TypeError,IndexError):
+            return None
+    return dct
+
 def list_remote_models():
+    api_service = get_current_api_service()
+
     modules.sd_models.checkpoints_list.clear()
     modules.sd_models.checkpoint_aliases.clear()
 
-    if api_service == RemoteService.SDNEXT:
-        model_list = requests.get(api_providers.sdnext_api_endpoint+"/sdapi/v1/sd-models")
+    if api_service == RemoteService.SDNext:
+        model_list = requests.get(shared.opts.sdnext_api_endpoint+"/sdapi/v1/sd-models")
         if model_list.status_code != 200:
             raise LoadModelListError(api_service, model_list.content)
         
         model_list = json.loads(model_list.content)
         for model in sorted(model_list, key=lambda model: str.lower(model['model_name'])):
-            RemoteCheckpointInfo(model['model_name'], RemoteService.SDNEXT)
+            RemoteCheckpointInfo(model['model_name'], RemoteService.SDNext)
 
-    elif api_service == RemoteService.HORDE:
-        model_list = requests.get(api_providers.horde_api_endpoint+"/v2/status/models", headers={'Client-Agent':api_providers.horde_client_agent})
+    elif api_service == RemoteService.StableHorde:
+        model_list = requests.get(shared.opts.horde_api_endpoint+"/v2/status/models", headers={'Client-Agent':'SD.Next Remote Inference:rolling:BinaryQuantumSoul'})
         if model_list.status_code != 200:
             raise LoadModelListError(api_service, model_list.content)
         
+        data = json.loads(requests.get('https://github.com/Haidra-Org/AI-Horde-image-model-reference/blob/main/stable_diffusion.json').content)
+        data_models = json.loads(''.join(data['payload']['blob']['rawLines']))
+        
         model_list = json.loads(model_list.content)
         model_list = filter(lambda model: model['type'] == 'image', model_list)
-        for model in sorted(model_list, key=lambda model: str.lower(model['name'])):
-            RemoteCheckpointInfo(model['name'], RemoteService.HORDE)
+        for model in reversed(sorted(model_list, key=lambda model: model['count'])):
+            model_data = safeget(data_models, model['name'])
+            RemoteCheckpointInfo(f"{model['name']} ({model['count']})", RemoteService.StableHorde, safeget(model_data,'showcases',0), safeget(model_data,'description'))
     
-    elif api_service == RemoteService.OMNIINFER:
-        model_list = requests.get(api_providers.omniinfer_api_endpoint+"/v2/models")
+    elif api_service == RemoteService.OmniInfer:
+        model_list = requests.get(shared.opts.omniinfer_api_endpoint+"/v2/models")
         if model_list.status_code != 200:
             raise LoadModelListError(api_service, model_list.content)
         
         model_list = json.loads(model_list.content)['data']['models']
         model_list = filter(lambda model: model['type'] == 'checkpoint', model_list)
         for model in sorted(model_list, key=lambda model: str.lower(model['name'])):
-            RemoteCheckpointInfo(model['name'], RemoteService.OMNIINFER, getattr(model, 'civitai_model_id', None))
+            RemoteCheckpointInfo(model['name'], RemoteService.OmniInfer, safeget(model, 'civitai_images', 0, 'url'))
 
     shared.log.info(f'Available models: {api_service} items={len(modules.sd_models.checkpoints_list)}')
 
 def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):
+    api_service = get_current_api_service()
+
     global last_loaded_list
     if last_loaded_list is None or last_loaded_list != api_service:
         list_remote_models()
@@ -89,10 +96,10 @@ def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='mo
     return True
 
 def get_remote_preview_description_info(self, checkpoint_info):
-    if checkpoint_info.remote_service == RemoteService.HORDE:
-        pass
-
-    return self.link_preview('html/logo-bg-1.jpg'), '', ''
+    preview = checkpoint_info.preview_url or self.link_preview('html/card-no-preview.png')
+    description = checkpoint_info.description or ''
+    info = ''
+    return preview, description, info
 
 def extra_networks_checkpoints_list_items(self):
     self.refresh()
@@ -115,7 +122,6 @@ def extra_networks_checkpoints_list_items(self):
             "metadata": checkpoint.metadata,
         }
 
-if api_service != RemoteService.LOCAL:
-    modules.sd_models.list_models = list_remote_models
-    modules.sd_models.reload_model_weights = fake_reload_model_weights
-    modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = extra_networks_checkpoints_list_items
+modules.sd_models.list_models = list_remote_models
+modules.sd_models.reload_model_weights = fake_reload_model_weights
+modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = extra_networks_checkpoints_list_items
