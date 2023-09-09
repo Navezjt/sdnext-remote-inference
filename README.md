@@ -4,17 +4,17 @@ Aimed to be universal for all providers, feel free to request other providers.
 
 # Providers
 - SD.Next (someone else running SD.Next API)
-- Stable Horde (free crowd computers)
-- OmniInfer (paid)
+- [Stable Horde](https://stablehorde.net/) (free, crowd computers)
+- [OmniInfer](https://www.omniinfer.io/) (paid)
 - other ?
 
 # Features
-|                             | SD.Next API | StableHorde | OmniInfer |
+|                             | SD.Next API | Stable Horde | OmniInfer |
 |-----------------------------|:-----------:|:-----------:|:---------:|
 | ***Model browsing***        |             |             |           |
 | Checkpoints browser         |      🆗      |      ✅      |     ✅     |
-| Loras browser               |      🆗      |      ❌      |     ✅     |
-| Embeddings browser          |      🆗      |      ❌      |     🆗     |
+| Loras browser               |      🆗      |      ⭕      |     ✅     |
+| Embeddings browser          |      🆗      |      ⭕      |     🆗     |
 | Lycoris browser             |      🆗      |      ❌      |     ❌     |
 | Hypernet browser            |      🆗      |      ❌      |     ❌     |
 | VAE selection               |      🆗      |      ❌      |     🆗     |
@@ -30,4 +30,6 @@ Aimed to be universal for all providers, feel free to request other providers.
 
 ✅ functional
 🆗 work in progress
-❌ not doable / won't do
+⭕ not needed (whole CivitAI is supported)
+❌ not supported
+
