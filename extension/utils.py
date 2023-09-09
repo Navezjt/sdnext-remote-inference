@@ -9,6 +9,9 @@ default_endpoints = {
     RemoteService.OmniInfer: 'https://api.omniinfer.io'
 }
 
+def get_default_endpoint(opt, remote_service):
+    return shared.opts.data.get(opt, default_endpoints[remote_service])
+
 def get_current_api_service():
     return RemoteService[shared.opts.remote_inference_service]  
 
