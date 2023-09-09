@@ -1,5 +1,5 @@
 # sdnext-remote-inference
-SD.Next extension to send compute tasks to remote inference servers.
+[SD.Next](https://github.com/vladmandic/automatic) extension to send compute tasks to remote inference servers.
 Aimed to be universal for all providers, feel free to request other providers.
 
 # Providers
