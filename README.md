@@ -26,6 +26,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 | Inpainting                  |      🆗      |      🆗      |     🆗     |
 | ***User***                  |             |             |           |
 | Balance (credits/kudos)     |      ❌      |      🆗      |     🆗     |
+| Generation cost estimation  |      ❌      |      🆗      |     🆗     |
 | Image rating                |      ❌      |      🆗      |     ❌     |
 
 ✅ functional
