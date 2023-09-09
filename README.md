@@ -30,6 +30,6 @@ Aimed to be universal for all providers, feel free to request other providers.
 
 ✅ functional
 🆗 work in progress
-⭕ not needed (whole CivitAI is supported)
+⭕ not needed
 ❌ not supported
 
