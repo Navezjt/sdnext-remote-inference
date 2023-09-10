@@ -25,7 +25,9 @@ def on_ui_settings():
 
     setting_names[RemoteService.SDNext]: OptionInfo(default_endpoints[RemoteService.SDNext], 'SD.Next API endpoint'),
     setting_names[RemoteService.StableHorde]: OptionInfo(default_endpoints[RemoteService.StableHorde], 'StableHorde API endpoint'),
-    setting_names[RemoteService.OmniInfer]: OptionInfo(default_endpoints[RemoteService.OmniInfer], 'OmniInfer API endpoint')
+    setting_names[RemoteService.OmniInfer]: OptionInfo(default_endpoints[RemoteService.OmniInfer], 'OmniInfer API endpoint'),
+
+    'remote_model_browser_cache_time': OptionInfo(60, 'Cache time (in second) for remote model browser', gr.Slider, {"minimum": 1, "maximum": 600, "step": 1})
     }))
 
     if modules.shared.opts.quicksettings_list[0] != 'remote_inference_service':
