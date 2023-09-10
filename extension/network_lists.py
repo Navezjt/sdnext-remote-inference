@@ -2,13 +2,10 @@ import requests
 import json
 import html
 
-import modules.sd_models
-import modules.ui_extra_networks_checkpoints
+import modules
 import lora
-import ui_extra_networks_lora
-from modules import shared
 
-from extension.utils import RemoteService, get_default_endpoint, get_current_api_service, safeget, make_conditional_hook
+from extension.remote_services_utils import RemoteService, get_default_endpoint, get_current_api_service, safeget
 
 class PreviewDescriptionInfo():
     pass
@@ -83,10 +80,12 @@ def list_remote_models():
         for model in sorted(model_list, key=lambda model: str.lower(model['name'])):
             RemoteCheckpointInfo(model['name'], api_service, safeget(model, 'civitai_images', 0, 'url'))
 
-    shared.log.info(f'Available models: {api_service} items={len(modules.sd_models.checkpoints_list)}')
+    modules.shared.log.info(f'Available models: {api_service} items={len(modules.sd_models.checkpoints_list)}')
 
 last_loaded_list = None
 def check_list_or_reload():
+    return #todo test
+
     global last_loaded_list
     api_service = get_current_api_service()
     if last_loaded_list  is None or last_loaded_list != api_service:
@@ -97,7 +96,7 @@ def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='mo
     check_list_or_reload()
     
     checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
-    shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
+    modules.shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
     return True
 
 def extra_networks_checkpoints_list_items(self):
@@ -120,10 +119,6 @@ def extra_networks_checkpoints_list_items(self):
             "local_preview": None,
             "metadata": checkpoint.metadata,
         }
-
-modules.sd_models.list_models = make_conditional_hook(modules.sd_models.list_models, list_remote_models)
-modules.sd_models.reload_model_weights = make_conditional_hook(modules.sd_models.reload_model_weights, fake_reload_model_weights)
-modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = make_conditional_hook(modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items, extra_networks_checkpoints_list_items)
 
 #============================================= LORAS =============================================       
 class LoraOnRemote(lora.LoraOnDisk, PreviewDescriptionInfo):
@@ -187,7 +182,7 @@ def extra_networks_loras_list_items(self):
     for name, lora_on_remote in lora.available_loras.items():
         preview, description, info = get_remote_preview_description_info(self, lora_on_remote)
 
-        prompt = f" <lora:{lora_on_remote.get_alias()}:{shared.opts.extra_networks_default_multiplier}>"
+        prompt = f" <lora:{lora_on_remote.get_alias()}:{modules.shared.opts.extra_networks_default_multiplier}>"
         prompt = json.dumps(prompt)
 
         yield {
@@ -204,6 +199,3 @@ def extra_networks_loras_list_items(self):
             "metadata": lora_on_remote.metadata,
             "tags": lora_on_remote.tags,
         }
-
-lora.list_available_loras = make_conditional_hook(lora.list_available_loras, list_remote_loras)
-ui_extra_networks_lora.ExtraNetworksPageLora.list_items = make_conditional_hook(ui_extra_networks_lora.ExtraNetworksPageLora.list_items, extra_networks_loras_list_items)
