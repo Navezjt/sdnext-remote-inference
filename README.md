@@ -24,6 +24,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 | Second pass (hires/refiner) |      🆗      |      🆗      |     🆗     |
 | ControlNet                  |      🆗      |      🆗      |     🆗     |
 | Inpainting                  |      🆗      |      🆗      |     🆗     |
+| Upscale                     |      🆗      |      🆗      |     🆗     |
 | ***User***                  |             |             |           |
 | Balance (credits/kudos)     |      ❌      |      🆗      |     🆗     |
 | Generation cost estimation  |      ❌      |      🆗      |     🆗     |
