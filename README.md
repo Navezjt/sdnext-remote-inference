@@ -14,7 +14,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 | ***Model browsing***        |             |             |           |
 | Checkpoints browser         |      🆗      |      ✅      |     ✅     |
 | Loras browser               |      🆗      |      ⭕      |     ✅     |
-| Embeddings browser          |      🆗      |      ⭕      |     🆗     |
+| Embeddings browser          |      🆗      |      ⭕      |     ✅     |
 | Lycoris browser             |      🆗      |      ❌      |     ❌     |
 | Hypernet browser            |      🆗      |      ❌      |     ❌     |
 | VAE selection               |      🆗      |      ❌      |     🆗     |

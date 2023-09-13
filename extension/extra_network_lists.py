@@ -42,6 +42,7 @@ def get_remote(model_type: ModelType, service: RemoteService):
         if service == RemoteService.SDNext:
             if model_type == ModelType.CHECKPOINT:
                 model_list = get_or_error(model_type, service, "/sdapi/v1/sd-models")
+                print(model_list)
 
                 for model in sorted(model_list, key=lambda model: str.lower(model['model_name'])):
                     RemoteCheckpointInfo(model['model_name'], service)
@@ -50,10 +51,13 @@ def get_remote(model_type: ModelType, service: RemoteService):
                 lora_list = get_or_error(model_type, service, "/sdapi/v1/loras")
 
                 for lora_model in sorted(lora_list, key=str.lower):
-                    LoraOnRemote(lora_model)
+                    RemoteLora(lora_model)
 
             elif model_type == ModelType.TEXTUALINVERSION:
-                pass
+                model_list = get_or_error(model_type, service, "/sdapi/v1/embeddings")
+
+                for model in sorted(model_list, key=str.lower):
+                    pass#RemoteEmbedding(model)
 
         #================================== Stable Horde ==================================
         elif service == RemoteService.StableHorde:
@@ -89,10 +93,15 @@ def get_remote(model_type: ModelType, service: RemoteService):
                 lora_list = filter(lambda model: model['type'] == 'lora', lora_list)
                 for lora_model in sorted(lora_list, key=lambda model: str.lower(model['name'])):
                     tags = {tag:0 for tag in lora_model['civitai_tags'].split(',')} if 'civitai_tags' in lora_model else {}
-                    LoraOnRemote(lora_model['name'], safeget(lora_model, 'civitai_images', 0, 'url'), tags=tags)
+                    RemoteLora(lora_model['name'], safeget(lora_model, 'civitai_images', 0, 'url'), tags=tags)
 
             elif model_type == ModelType.TEXTUALINVERSION:
-                pass
+                ti_list = get_or_error(model_type, service, "/v2/models")
+                ti_list = ti_list['data']['models']
+                ti_list = filter(lambda model: model['type'] == 'textualinversion', ti_list)
+                for ti_model in sorted(ti_list, key=lambda model: str.lower(model['name'])):
+                    RemoteEmbedding(ti_model['name'], safeget(ti_model, 'civitai_images', 0, 'url'))
+
     except ModelListFetchError as e:
         modules.shared.log.error(e)
 
@@ -138,26 +147,25 @@ def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='mo
     return True
 
 def extra_networks_checkpoints_list_items(self):
-    checkpoint: RemoteCheckpointInfo
     for name, checkpoint in modules.sd_models.checkpoints_list.items():
         preview, description, info = get_remote_preview_description_info(self, checkpoint)
 
         yield {
-            "name": checkpoint.name,
-            "filename": checkpoint.name,
-            "fullname": checkpoint.name,
+            "name": name,
+            "filename": name,
+            "fullname": name,
             "hash": None,
             "preview": preview,
             "description": description,
             "info": info,
-            "search_term": f'{checkpoint.name} /{checkpoint.type}/',
+            "search_term": f'{name} /{checkpoint.type}/',
             "onclick": '"' + html.escape(f"""return selectCheckpoint({json.dumps(name)})""") + '"',
             "local_preview": None,
             "metadata": checkpoint.metadata,
         }
 
 #============================================= LORAS =============================================       
-class LoraOnRemote(lora.LoraOnDisk, PreviewDescriptionInfo):
+class RemoteLora(lora.LoraOnDisk, PreviewDescriptionInfo):
     def __init__(self, name, preview_url=None, description=None, info=None, tags={}):
         self.name = self.alias = name
         self.filename = ''
@@ -212,4 +220,50 @@ def extra_networks_loras_list_items(self):
             "local_preview": None,
             "metadata": lora_on_remote.metadata,
             "tags": lora_on_remote.tags,
+        }
+
+#============================================= EMBEDDINGS =============================================
+class RemoteEmbedding(modules.textual_inversion.textual_inversion.Embedding, PreviewDescriptionInfo):
+    def __init__(self, name, preview_url=None, description=None, info=None):
+        super().__init__(None, name)
+        self.filename = ''
+
+        self.preview_url = preview_url
+        self.description = description
+        self.info = info
+
+        self.register()
+
+    def register(self):
+        modules.sd_hijack.model_hijack.embedding_db.word_embeddings[self.name] = self
+
+def extra_networks_textual_inversions_refresh(self):
+    modules.sd_hijack.model_hijack.embedding_db.load_textual_inversion_embeddings()
+
+def list_remote_embeddings(self, force_reload=False):
+    api_service = get_current_api_service()
+
+    self.ids_lookup.clear()
+    self.word_embeddings.clear()
+    self.skipped_embeddings.clear()
+    self.embeddings_used.clear()
+    self.expected_shape = None
+    self.embedding_dirs.clear()
+
+    get_remote(ModelType.TEXTUALINVERSION, api_service)
+    log_info_model_count(ModelType.TEXTUALINVERSION, api_service, len(self.word_embeddings))
+
+def extra_networks_textual_inversions_list_items(self):
+    for name, embedding in modules.sd_hijack.model_hijack.embedding_db.word_embeddings.items():
+        preview, description, info = get_remote_preview_description_info(self, embedding)
+
+        yield {
+            "name": name,
+            "filename": name,
+            "preview": preview,
+            "description": description,
+            "info": info,
+            "search_term": name,
+            "prompt": name,
+            "local_preview": None,
         }
