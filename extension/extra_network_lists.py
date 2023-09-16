@@ -3,7 +3,11 @@ import json
 import html
 import time
 
-import modules
+import modules.shared
+import modules.sd_models
+import modules.textual_inversion
+import modules.sd_hijack
+log = modules.shared.log
 import lora
 
 from extension.utils_remote import ModelType, RemoteService, get_current_api_service, get_default_endpoint, safeget
@@ -12,8 +16,11 @@ class ModelListFetchError(Exception):
     def __init__(self, model_type, service, error):
         super().__init__(f'Unable to fetch remote {model_type} list for {service}: {error}')
 
+def log_debug_model_list(model_type, api_service):
+    log.debug(f'RI: Listing {model_type.name.lower()}s from {api_service}')
+
 def log_info_model_count(model_type, api_service, count):
-    modules.shared.log.info(f'Available {model_type.name.lower()}s: {api_service} items={count}')
+    log.info(f'RI: Available {model_type.name.lower()}s: {api_service} items={count}')
 
 cache = {}
 def get_or_error(model_type, service, path):
@@ -48,10 +55,10 @@ def get_remote(model_type: ModelType, service: RemoteService):
                     RemoteCheckpointInfo(model['model_name'], service)
 
             elif model_type == ModelType.LORA:
-                lora_list = get_or_error(model_type, service, "/sdapi/v1/loras")
+                model_list = get_or_error(model_type, service, "/sdapi/v1/loras")
 
-                for lora_model in sorted(lora_list, key=str.lower):
-                    RemoteLora(lora_model)
+                for model in sorted(model_list, key=str.lower):
+                    RemoteLora(model)
 
             elif model_type == ModelType.TEXTUALINVERSION:
                 model_list = get_or_error(model_type, service, "/sdapi/v1/embeddings")
@@ -70,7 +77,8 @@ def get_remote(model_type: ModelType, service: RemoteService):
                 
                 for model in sorted(model_list, key=lambda model: model['count'], reverse=True):
                     model_data = safeget(data_models, model['name'])
-                    RemoteCheckpointInfo(f"{model['name']} ({model['count']})", service, safeget(model_data,'showcases',0), safeget(model_data,'description'))
+                    if not safeget(model_data, 'nsfw') or not modules.shared.opts.skip_nsfw_models: 
+                        RemoteCheckpointInfo(f"{model['name']} ({model['count']})", service, safeget(model_data,'showcases',0), safeget(model_data,'description'))
         
             elif model_type == ModelType.LORA:
                 pass
@@ -79,36 +87,40 @@ def get_remote(model_type: ModelType, service: RemoteService):
 
         #================================== OmniInfer ==================================
         elif service == RemoteService.OmniInfer:
-            if model_type == ModelType.CHECKPOINT:
-                model_list = get_or_error(model_type, service, "/v2/models")
-                model_list = model_list['data']['models']
-                model_list = filter(lambda model: model['type'] == 'checkpoint', model_list)
+            if not model_type in [ModelType.CHECKPOINT, ModelType.LORA, ModelType.TEXTUALINVERSION]:
+                return
 
+            model_list = get_or_error(model_type, service, "/v2/models")
+            model_list = model_list['data']['models']
+            if modules.shared.opts.skip_nsfw_models:
+                model_list = list(filter(lambda x: not x['civitai_nsfw'], model_list))
+                for model in model_list:
+                    if 'civitai_images' in model:
+                        model['civitai_images'] = list(filter(lambda img: img['nsfw'] == 'None', model['civitai_images']))
+
+            if model_type == ModelType.CHECKPOINT:
+                model_list = filter(lambda model: model['type'] == 'checkpoint', model_list)
                 for model in sorted(model_list, key=lambda model: str.lower(model['name'])):
                     RemoteCheckpointInfo(model['name'], service, safeget(model, 'civitai_images', 0, 'url'))
 
             elif model_type == ModelType.LORA:          
-                lora_list = get_or_error(model_type, service, "/v2/models")
-                lora_list = lora_list['data']['models']
-                lora_list = filter(lambda model: model['type'] == 'lora', lora_list)
-                for lora_model in sorted(lora_list, key=lambda model: str.lower(model['name'])):
-                    tags = {tag:0 for tag in lora_model['civitai_tags'].split(',')} if 'civitai_tags' in lora_model else {}
-                    RemoteLora(lora_model['name'], safeget(lora_model, 'civitai_images', 0, 'url'), tags=tags)
+                model_list = filter(lambda model: model['type'] == 'lora', model_list)
+                for model in sorted(model_list, key=lambda model: str.lower(model['name'])):
+                    tags = {tag:0 for tag in model['civitai_tags'].split(',')} if 'civitai_tags' in model else {}
+                    RemoteLora(model['name'], safeget(model, 'civitai_images', 0, 'url'), tags=tags)
 
             elif model_type == ModelType.TEXTUALINVERSION:
-                ti_list = get_or_error(model_type, service, "/v2/models")
-                ti_list = ti_list['data']['models']
-                ti_list = filter(lambda model: model['type'] == 'textualinversion', ti_list)
-                for ti_model in sorted(ti_list, key=lambda model: str.lower(model['name'])):
-                    RemoteEmbedding(ti_model['name'], safeget(ti_model, 'civitai_images', 0, 'url'))
+                model_list = filter(lambda model: model['type'] == 'textualinversion', model_list)
+                for model in sorted(model_list, key=lambda model: str.lower(model['name'])):
+                    RemoteEmbedding(model['name'], safeget(model, 'civitai_images', 0, 'url'))
 
     except ModelListFetchError as e:
-        modules.shared.log.error(e)
+        log.error(f'RI: {e}')
 
 class PreviewDescriptionInfo():
     pass
 
-def get_remote_preview_description_info(self, prev_desc_info):
+def get_remote_preview_description_info(self: PreviewDescriptionInfo, prev_desc_info):
     preview = prev_desc_info.preview_url or self.link_preview('html/card-no-preview.png')
     description = prev_desc_info.description or ''
     info = prev_desc_info.info or ''

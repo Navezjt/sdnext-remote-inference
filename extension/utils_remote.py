@@ -1,6 +1,7 @@
 from enum import Enum
+import copy
 
-import modules
+import modules.shared
 
 ModelType = Enum('ModelType', ['CHECKPOINT','LORA','TEXTUALINVERSION','CONTROLNET','VAE','UPSCALER','LYCORIS','HYPERNET'])
 RemoteService = Enum('RemoteService', ['Local', 'SDNext', 'StableHorde', 'OmniInfer'])
@@ -29,7 +30,6 @@ def safeget(dct, *keys):
             return None
     return dct
 
-import copy
 def make_conditional_hook(func, replace_func):
     func_copy = copy.deepcopy(func)
     def wrap(*args, **kwargs):
