@@ -150,6 +150,7 @@ def list_remote_models():
     modules.sd_models.checkpoints_list.clear()
     modules.sd_models.checkpoint_aliases.clear()
 
+    log_debug_model_list(ModelType.CHECKPOINT, api_service)
     get_remote(ModelType.CHECKPOINT, api_service)
     log_info_model_count(ModelType.CHECKPOINT, api_service, len(modules.sd_models.checkpoints_list))
 
@@ -209,6 +210,7 @@ def list_remote_loras():
     lora.available_lora_hash_lookup.clear()
     lora.forbidden_lora_aliases.update({"none": 1, "Addams": 1})
 
+    log_debug_model_list(ModelType.LORA, api_service)
     get_remote(ModelType.LORA, api_service)
     log_info_model_count(ModelType.LORA, api_service, len(lora.available_loras))
 
@@ -262,6 +264,7 @@ def list_remote_embeddings(self, force_reload=False):
     self.expected_shape = None
     self.embedding_dirs.clear()
 
+    log_debug_model_list(ModelType.TEXTUALINVERSION, api_service)
     get_remote(ModelType.TEXTUALINVERSION, api_service)
     log_info_model_count(ModelType.TEXTUALINVERSION, api_service, len(self.word_embeddings))
 
