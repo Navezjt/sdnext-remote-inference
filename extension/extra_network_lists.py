@@ -7,6 +7,7 @@ import modules.shared
 import modules.sd_models
 import modules.textual_inversion
 import modules.sd_hijack
+import modules.ui_extra_networks
 log = modules.shared.log
 import lora
 
@@ -118,24 +119,21 @@ def get_remote(model_type: ModelType, service: RemoteService):
         log.error(f'RI: {e}')
 
 class PreviewDescriptionInfo():
-    pass
+    no_preview = modules.ui_extra_networks.ExtraNetworksPage.link_preview(None, 'html/card-no-preview.png')
 
-def get_remote_preview_description_info(self: PreviewDescriptionInfo, prev_desc_info):
-    preview = prev_desc_info.preview_url or self.link_preview('html/card-no-preview.png')
-    description = prev_desc_info.description or ''
-    info = prev_desc_info.info or ''
-    return preview, description, info
+    def __init__(self, preview_url=None, description=None, info=None):
+        self.preview = preview_url or PreviewDescriptionInfo.no_preview
+        self.description = description
+        self.info = info
 
 #============================================= CHECKPOINTS =============================================
 class RemoteCheckpointInfo(modules.sd_models.CheckpointInfo, PreviewDescriptionInfo):
     def __init__(self, name, remote_service, preview_url=None, description=None, info=None):
+        PreviewDescriptionInfo.__init__(self, preview_url, description, info)
+
         self.name = self.name_for_extra = self.model_name = self.title = name
         self.type = f"remote ({remote_service})"
         self.ids = [self.name]
-
-        self.preview_url = preview_url
-        self.description = description
-        self.info = info
 
         self.model_info = None
         self.metadata = {}
@@ -161,16 +159,14 @@ def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='mo
 
 def extra_networks_checkpoints_list_items(self):
     for name, checkpoint in modules.sd_models.checkpoints_list.items():
-        preview, description, info = get_remote_preview_description_info(self, checkpoint)
-
         yield {
             "name": name,
             "filename": name,
             "fullname": name,
             "hash": None,
-            "preview": preview,
-            "description": description,
-            "info": info,
+            "preview": checkpoint.preview,
+            "description": checkpoint.description,
+            "info": checkpoint.info,
             "search_term": f'{name} /{checkpoint.type}/',
             "onclick": '"' + html.escape(f"""return selectCheckpoint({json.dumps(name)})""") + '"',
             "local_preview": None,
@@ -180,12 +176,10 @@ def extra_networks_checkpoints_list_items(self):
 #============================================= LORAS =============================================       
 class RemoteLora(lora.LoraOnDisk, PreviewDescriptionInfo):
     def __init__(self, name, preview_url=None, description=None, info=None, tags={}):
+        PreviewDescriptionInfo.__init__(self, preview_url, description, info)
+
         self.name = self.alias = name
         self.filename = ''
-
-        self.preview_url = preview_url
-        self.description = description
-        self.info = info
 
         self.tags = tags
 
@@ -215,10 +209,8 @@ def list_remote_loras():
     log_info_model_count(ModelType.LORA, api_service, len(lora.available_loras))
 
 def extra_networks_loras_list_items(self):
-    for name, lora_on_remote in lora.available_loras.items():
-        preview, description, info = get_remote_preview_description_info(self, lora_on_remote)
-
-        prompt = f" <lora:{lora_on_remote.get_alias()}:{modules.shared.opts.extra_networks_default_multiplier}>"
+    for name, remote_lora in lora.available_loras.items():
+        prompt = f" <lora:{remote_lora.get_alias()}:{modules.shared.opts.extra_networks_default_multiplier}>"
         prompt = json.dumps(prompt)
 
         yield {
@@ -226,25 +218,23 @@ def extra_networks_loras_list_items(self):
             "filename": name,
             "fullname": name,
             "hash": None,
-            "preview": preview,
-            "description": description,
-            "info": info,
+            "preview": remote_lora.preview,
+            "description": remote_lora.description,
+            "info": remote_lora.info,
             "search_term": name,
             "prompt": prompt,
             "local_preview": None,
-            "metadata": lora_on_remote.metadata,
-            "tags": lora_on_remote.tags,
+            "metadata": remote_lora.metadata,
+            "tags": remote_lora.tags,
         }
 
 #============================================= EMBEDDINGS =============================================
 class RemoteEmbedding(modules.textual_inversion.textual_inversion.Embedding, PreviewDescriptionInfo):
     def __init__(self, name, preview_url=None, description=None, info=None):
         super().__init__(None, name)
-        self.filename = ''
+        PreviewDescriptionInfo.__init__(self, preview_url, description, info)
 
-        self.preview_url = preview_url
-        self.description = description
-        self.info = info
+        self.filename = ''
 
         self.register()
 
@@ -270,14 +260,12 @@ def list_remote_embeddings(self, force_reload=False):
 
 def extra_networks_textual_inversions_list_items(self):
     for name, embedding in modules.sd_hijack.model_hijack.embedding_db.word_embeddings.items():
-        preview, description, info = get_remote_preview_description_info(self, embedding)
-
         yield {
             "name": name,
             "filename": name,
-            "preview": preview,
-            "description": description,
-            "info": info,
+            "preview": embedding.preview,
+            "description": embedding.description,
+            "info": embedding.info,
             "search_term": name,
             "prompt": name,
             "local_preview": None,
