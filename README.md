@@ -10,22 +10,22 @@ Aimed to be universal for all providers, feel free to request other providers.
 
 # Features
 |                             | SD.Next API | Stable Horde | OmniInfer |
-|-----------------------------|:-----------:|:-----------:|:---------:|
-| ***Model browsing***        |             |             |           |
+|-----------------------------|:-----------:|:-----------:|:----------:|
+| ***Model browsing***        |             |              |            |
 | Checkpoints browser         |      🆗      |      ✅      |     ✅     |
 | Loras browser               |      🆗      |      ⭕      |     ✅     |
 | Embeddings browser          |      🆗      |      ⭕      |     ✅     |
 | Lycoris browser             |      🆗      |      ❌      |     ❌     |
 | Hypernet browser            |      🆗      |      ❌      |     ❌     |
 | VAE selection               |      🆗      |      ❌      |     🆗     |
-| ***Generation***            |             |             |           |
+| ***Generation***            |             |              |            |
 | From Text                   |      🆗      |      🆗      |     🆗     |
 | From Image                  |      🆗      |      🆗      |     🆗     |
 | Second pass (hires/refiner) |      🆗      |      🆗      |     🆗     |
 | ControlNet                  |      🆗      |      🆗      |     🆗     |
 | Inpainting                  |      🆗      |      🆗      |     🆗     |
 | Upscale                     |      🆗      |      🆗      |     🆗     |
-| ***User***                  |             |             |           |
+| ***User***                  |             |              |            |
 | Balance (credits/kudos)     |      ❌      |      🆗      |     🆗     |
 | Generation cost estimation  |      ❌      |      🆗      |     🆗     |
 | Image rating                |      ❌      |      🆗      |     ❌     |
@@ -34,4 +34,8 @@ Aimed to be universal for all providers, feel free to request other providers.
 🆗 work in progress
 ⭕ not needed
 ❌ not supported
+
+## Additional features
+- Extra networks lists caching
+- Hide NSFW networks option
 
