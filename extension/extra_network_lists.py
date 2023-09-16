@@ -152,10 +152,13 @@ def list_remote_models():
     get_remote(ModelType.CHECKPOINT, api_service)
     log_info_model_count(ModelType.CHECKPOINT, api_service, len(modules.sd_models.checkpoints_list))
 
-def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):  
-    checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
-    modules.shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
-    return True
+def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):
+    try:
+        checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
+        modules.shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
+        return True
+    except StopIteration:
+        return False
 
 def extra_networks_checkpoints_list_items(self):
     for name, checkpoint in modules.sd_models.checkpoints_list.items():
