@@ -12,9 +12,9 @@ Aimed to be universal for all providers, feel free to request other providers.
 |                             | SD.Next API | Stable Horde | OmniInfer |
 |-----------------------------|:-----------:|:-----------:|:----------:|
 | ***Model browsing***        |             |              |            |
-| Checkpoints browser         |      🆗      |      ✅      |     ✅     |
-| Loras browser               |      🆗      |      ⭕      |     ✅     |
-| Embeddings browser          |      🆗      |      ⭕      |     ✅     |
+| Checkpoints browser         |      ✅      |      ✅      |     ✅     |
+| Loras browser               |      ✅      |      ⭕      |     ✅     |
+| Embeddings browser          |      ✅      |      ⭕      |     ✅     |
 | Lycoris browser             |      🆗      |      ❌      |     ❌     |
 | Hypernet browser            |      🆗      |      ❌      |     ❌     |
 | VAE selection               |      🆗      |      ❌      |     🆗     |

@@ -16,7 +16,7 @@ setting_names = {
     RemoteService.OmniInfer: 'omniinfer_api_endpoint'
 }
 
-def get_default_endpoint(remote_service):
+def get_remote_endpoint(remote_service):
     return modules.shared.opts.data.get(setting_names[remote_service], default_endpoints[remote_service])
 
 def get_current_api_service():
