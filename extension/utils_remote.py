@@ -10,14 +10,21 @@ default_endpoints = {
     RemoteService.StableHorde: 'https://stablehorde.net/api',
     RemoteService.OmniInfer: 'https://api.omniinfer.io'
 }
-setting_names = {
+endpoint_setting_names = {
     RemoteService.SDNext: 'sdnext_api_endpoint',
     RemoteService.StableHorde: 'horde_api_endpoint',
     RemoteService.OmniInfer: 'omniinfer_api_endpoint'
 }
+apikey_setting_names = {
+    RemoteService.StableHorde: 'horde_api_key',
+    RemoteService.OmniInfer: 'omniinfer_api_key'
+}
 
 def get_remote_endpoint(remote_service):
-    return modules.shared.opts.data.get(setting_names[remote_service], default_endpoints[remote_service])
+    return modules.shared.opts.data.get(endpoint_setting_names[remote_service], default_endpoints[remote_service])
+
+def get_api_key(remote_service):
+    return modules.shared.opt.get(apikey_setting_names[remote_service])
 
 def get_current_api_service():
     return RemoteService[modules.shared.opts.remote_inference_service]  

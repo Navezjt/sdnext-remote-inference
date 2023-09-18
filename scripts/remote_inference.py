@@ -13,7 +13,7 @@ import modules.shared
 from modules.shared import OptionInfo, options_section
 import gradio as gr       
 
-from extension.utils_remote import RemoteService, default_endpoints, setting_names
+from extension.utils_remote import RemoteService, default_endpoints, endpoint_setting_names, apikey_setting_names
 
 #========================================== EXTRA NETWORKS ==========================================
 def on_app_started(*args, **kwargs):
@@ -33,11 +33,13 @@ modules.script_callbacks.on_app_started(on_app_started)
 #========================================== SETTINGS ==========================================
 def on_ui_settings():
     modules.shared.options_templates.update(options_section(('sdnext_remote_inference', "Remote Inference"),{
-    'remote_inference_service': OptionInfo(RemoteService.Local.name, "Remote inference service", gr.Dropdown, lambda: {"choices": [e.name for e in RemoteService]}),
+    'remote_inference_service': OptionInfo(RemoteService.Local.name, "Remote inference service", gr.Dropdown, {"choices": [e.name for e in RemoteService]}),
 
-    setting_names[RemoteService.SDNext]: OptionInfo(default_endpoints[RemoteService.SDNext], 'SD.Next API endpoint'),
-    setting_names[RemoteService.StableHorde]: OptionInfo(default_endpoints[RemoteService.StableHorde], 'StableHorde API endpoint'),
-    setting_names[RemoteService.OmniInfer]: OptionInfo(default_endpoints[RemoteService.OmniInfer], 'OmniInfer API endpoint'),
+    endpoint_setting_names[RemoteService.SDNext]: OptionInfo(default_endpoints[RemoteService.SDNext], 'SD.Next API endpoint'),
+    endpoint_setting_names[RemoteService.StableHorde]: OptionInfo(default_endpoints[RemoteService.StableHorde], 'StableHorde API endpoint'),
+    apikey_setting_names[RemoteService.StableHorde]: OptionInfo('', 'StableHorde API Key', gr.Textbox, {"type": "password"}),
+    endpoint_setting_names[RemoteService.OmniInfer]: OptionInfo(default_endpoints[RemoteService.OmniInfer], 'OmniInfer API endpoint'),
+    apikey_setting_names[RemoteService.OmniInfer]: OptionInfo('', 'OmniInfer API Key', gr.Textbox, {"type": "password"}),
 
     'remote_model_browser_cache_time': OptionInfo(600, 'Cache time (in seconds) for remote extra networks api calls', gr.Slider, {"minimum": 1, "maximum": 3600, "step": 1}),
     'skip_nsfw_models': OptionInfo(True, "Don't show (most of) NSFW networks")
