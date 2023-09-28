@@ -5,8 +5,11 @@ import ui_extra_networks_lora
 import modules.textual_inversion.textual_inversion
 import modules.ui_extra_networks_textual_inversion
 
-import extension.extra_network_lists
+import modules.processing
+
 from extension.utils_remote import make_conditional_hook
+import extension.extra_network_lists
+import extension.remote_process
 
 import modules.script_callbacks
 import modules.shared
@@ -15,8 +18,8 @@ import gradio as gr
 
 from extension.utils_remote import RemoteService, default_endpoints, endpoint_setting_names, apikey_setting_names
 
-#========================================== EXTRA NETWORKS ==========================================
 def on_app_started(*args, **kwargs):
+    #========================================== EXTRA NETWORKS ==========================================
     modules.sd_models.list_models = make_conditional_hook(modules.sd_models.list_models, extension.extra_network_lists.list_remote_models)
     modules.sd_models.reload_model_weights = make_conditional_hook(modules.sd_models.reload_model_weights, extension.extra_network_lists.fake_reload_model_weights)
     modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = make_conditional_hook(modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items, extension.extra_network_lists.extra_networks_checkpoints_list_items)
@@ -27,6 +30,9 @@ def on_app_started(*args, **kwargs):
     modules.textual_inversion.textual_inversion.EmbeddingDatabase.load_textual_inversion_embeddings = make_conditional_hook(modules.textual_inversion.textual_inversion.EmbeddingDatabase.load_textual_inversion_embeddings, extension.extra_network_lists.list_remote_embeddings)
     modules.ui_extra_networks_textual_inversion.ExtraNetworksPageTextualInversion.refresh = make_conditional_hook(modules.ui_extra_networks_textual_inversion.ExtraNetworksPageTextualInversion.refresh, extension.extra_network_lists.extra_networks_textual_inversions_refresh)
     modules.ui_extra_networks_textual_inversion.ExtraNetworksPageTextualInversion.list_items = make_conditional_hook(modules.ui_extra_networks_textual_inversion.ExtraNetworksPageTextualInversion.list_items, extension.extra_network_lists.extra_networks_textual_inversions_list_items)
+
+    #========================================== GENERATION ==========================================
+    modules.processing.process_images = make_conditional_hook(modules.processing.process_images, extension.remote_process.process_images)
 
 modules.script_callbacks.on_app_started(on_app_started)
 
