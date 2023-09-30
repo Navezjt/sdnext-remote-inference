@@ -49,10 +49,10 @@ def get_remote(model_type: ModelType, service: RemoteService):
             data = json.loads(requests.get('https://github.com/Haidra-Org/AI-Horde-image-model-reference/blob/main/stable_diffusion.json').content)
             data_models = json.loads(''.join(data['payload']['blob']['rawLines']))
             
-            for model in sorted(model_list, key=lambda model: model['count'], reverse=True):
+            for model in sorted(model_list, key=lambda model: (-model['count'], model['name'])):
                 model_data = safeget(data_models, model['name'])
                 if not safeget(model_data, 'nsfw') or not modules.shared.opts.skip_nsfw_models: 
-                    RemoteCheckpointInfo(f"{model['name']} ({model['count']})", safeget(model_data,'showcases',0), safeget(model_data,'description'))
+                    RemoteCheckpointInfo(f"{model['name']} ({model['count']})", safeget(model_data,'showcases',0), safeget(model_data,'description'), filename=model['name'])
     
         elif model_type == ModelType.LORA:
             pass
@@ -100,6 +100,16 @@ class PreviewDescriptionInfo():
 class RemoteModel:
     def __init__(self, checkpoint_info):
         self.sd_checkpoint_info = checkpoint_info
+        self.sd_model_hash = ''
+
+def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):
+    try:
+        checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
+        modules.shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
+        modules.shared.sd_model = RemoteModel(checkpoint_info)
+        return True
+    except StopIteration:
+        return False
 
 class RemoteCheckpointInfo(modules.sd_models.CheckpointInfo, PreviewDescriptionInfo):
     def __init__(self, name, preview_url=None, description=None, info=None, filename=''):
@@ -125,15 +135,6 @@ def list_remote_models():
     log_debug_model_list(ModelType.CHECKPOINT, api_service)
     get_remote(ModelType.CHECKPOINT, api_service)
     log_info_model_count(ModelType.CHECKPOINT, api_service, len(modules.sd_models.checkpoints_list))
-
-def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):
-    try:
-        checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
-        modules.shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
-        modules.shared.sd_model = RemoteModel(checkpoint_info)
-        return True
-    except StopIteration:
-        return False
 
 def extra_networks_checkpoints_list_items(self):
     for name, checkpoint in modules.sd_models.checkpoints_list.items():

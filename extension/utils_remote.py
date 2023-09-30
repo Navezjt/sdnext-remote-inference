@@ -58,8 +58,8 @@ def request_or_error(service, path, headers=None, method='GET', data=None):
         response = requests.request(method=method, url=get_remote_endpoint(service)+path, headers=headers, json=data)
     except Exception as e:
         raise RemoteInferenceError(service, e)
-    if response.status_code != 200:
-        raise RemoteInferenceError(service, response.content)
+    if response.status_code not in (200, 202):
+        raise RemoteInferenceError(service, f"{response.status_code}: {response.content}")
     
     return json.loads(response.content)
 
@@ -75,3 +75,32 @@ def get_or_error_with_cache(service, path):
     result = request_or_error(service, path)
     cache[cache_key] = (result, time.time())
     return result
+
+stable_horde_samplers =  {
+    "LMS": "k_lms",
+    "LMS Karras": "k_lms",
+    "Heun": "k_heun",
+    "Heun Karras": "k_heun",
+    "Euler": "k_euler",
+    "Euler Karras": "k_euler",
+    "Euler a": "k_euler_a",
+    "Euler a Karras": "k_euler_a",
+    "DPM2": "k_dpm_2",
+    "DPM2 Karras": "k_dpm_2",
+    "DPM2 a": "k_dpm_2_a",
+    "DPM2 a Karras": "k_dpm_2_a",
+    "DPM fast": "k_dpm_fast",
+    "DPM fast Karras": "k_dpm_fast",
+    "DPM adaptive": "k_dpm_adaptive",
+    "DPM adaptive Karras": "k_dpm_adaptive",
+    "DPM++ 2S a": "k_dpmpp_2s_a",
+    "DPM++ 2S a Karras": "k_dpmpp_2s_a",
+    "DPM++ 2M": "k_dpmpp_2m",
+    "DPM++ 2M Karras": "k_dpmpp_2m",
+    "DPM solver": "dpmsolver",
+    "DPM solver Karras": "dpmsolver",
+    "DPM++ SDE": "k_dpmpp_sde",
+    "DPM++ SDE Karras": "k_dpmpp_sde",
+    "DDIM": "DDIM",
+    "DDIM Karras": "DDIM"
+}

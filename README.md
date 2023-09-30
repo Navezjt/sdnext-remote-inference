@@ -39,3 +39,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 - Extra networks lists caching
 - Hide NSFW networks option
 
+# Credits
+Inspired by:
+- [natanjunges/stable-diffusion-webui-stable-horde](https://github.com/natanjunges/stable-diffusion-webui-stable-horde)
+- [omniinfer/sd-webui-cloud-inference](https://github.com/omniinfer/sd-webui-cloud-inference)
