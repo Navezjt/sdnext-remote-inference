@@ -19,7 +19,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 | Hypernet browser            |      🆗      |      ❌      |     ❌     |
 | VAE selection               |      🆗      |      ❌      |     🆗     |
 | ***Generation***            |             |              |            |
-| From Text                   |      🆗      |      🆗      |     🆗     |
+| From Text                   |      🆗      |      🆗+     |     🆗+    |
 | From Image                  |      🆗      |      🆗      |     🆗     |
 | Second pass (hires/refiner) |      🆗      |      🆗      |     🆗     |
 | ControlNet                  |      🆗      |      🆗      |     🆗     |
