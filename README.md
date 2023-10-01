@@ -39,6 +39,16 @@ Aimed to be universal for all providers, feel free to request other providers.
 - Extra networks lists caching
 - Hide NSFW networks option
 
+# Installation & usage
+1. Launch SD.Next with `--no-download` option
+2. Installation
+    1. Go to extensions > manual install > paste `https://github.com/BinaryQuantumSoul/sdnext-remote-inference` > install
+    2. Go to extensions > manage extensions > apply changes & restart server
+    3. Go to system > settings > remote inference > set right api endpoints & keys
+3. Usage
+    1. Select desired remote inference service in dropdown, refresh model list and select model
+    2. Set generations parameters as usual and click generate
+
 # Credits
 Inspired by:
 - [natanjunges/stable-diffusion-webui-stable-horde](https://github.com/natanjunges/stable-diffusion-webui-stable-horde)
