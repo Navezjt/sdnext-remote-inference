@@ -110,6 +110,8 @@ def get_image(img):
         return download_image(img)
     else:
         return decode_image(img)
+    
+stable_horde_client = "SD.Next Remote Inference:rolling:QuantumSoul"
 
 stable_horde_samplers =  {
     # Copyright NatanJunges

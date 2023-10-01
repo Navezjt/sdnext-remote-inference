@@ -10,6 +10,7 @@ import modules.processing
 from extension.utils_remote import make_conditional_hook
 import extension.remote_extra_networks
 import extension.remote_process
+import extension.remote_balance
 
 import modules.script_callbacks
 import modules.shared
@@ -18,7 +19,7 @@ import gradio as gr
 
 from extension.utils_remote import RemoteService, default_endpoints, endpoint_setting_names, apikey_setting_names
 
-def on_app_started(*args, **kwargs):
+def on_app_started(blocks, _app):
     # EXTRA NETWORKS
     modules.sd_models.list_models = make_conditional_hook(modules.sd_models.list_models, extension.remote_extra_networks.list_remote_models)
     modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = make_conditional_hook(modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items, extension.remote_extra_networks.extra_networks_checkpoints_list_items)
@@ -33,6 +34,10 @@ def on_app_started(*args, **kwargs):
     # GENERATION
     modules.sd_models.reload_model_weights = make_conditional_hook(modules.sd_models.reload_model_weights, extension.remote_process.fake_reload_model_weights)
     modules.processing.process_images = make_conditional_hook(modules.processing.process_images, extension.remote_process.process_images)
+
+    # UI
+    with blocks:
+        gr.HTML(value=extension.remote_balance.get_remote_balance_html, elem_id='remote_inference_balance', every=30)
 
 modules.script_callbacks.on_app_started(on_app_started)
 

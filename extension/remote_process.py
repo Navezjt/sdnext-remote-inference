@@ -3,7 +3,7 @@ from modules.processing import StableDiffusionProcessing, StableDiffusionProcess
 import modules.shared
 from modules.shared import state, log
 
-from extension.utils_remote import decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_samplers
+from extension.utils_remote import decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_samplers, stable_horde_client
 
 import json
 
@@ -46,7 +46,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
 
             headers = {
                 "apikey": get_api_key(service),
-                "Client-Agent": "SD.Next Remote Inference:rolling:QuantumSoul",
+                "Client-Agent": stable_horde_client,
                 "Content-Type": "application/json"
             }
             data = {
