@@ -26,7 +26,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 | Inpainting                  |      🆗      |      🆗      |     🆗     |
 | Upscale                     |      🆗      |      🆗      |     🆗     |
 | ***User***                  |             |              |            |
-| Balance (credits/kudos)     |      ❌      |      🆗      |     🆗     |
+| Balance (credits/kudos)     |      ❌      |      ✅      |     ✅     |
 | Generation cost estimation  |      ❌      |      🆗      |     🆗     |
 | Image rating                |      ❌      |      🆗      |     ❌     |
 
