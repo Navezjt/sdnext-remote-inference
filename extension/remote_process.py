@@ -3,14 +3,23 @@ from modules.processing import StableDiffusionProcessing, StableDiffusionProcess
 import modules.shared
 from modules.shared import state, log
 
-from extension.utils_remote import get_current_api_service, request_or_error, RemoteService, get_api_key, stable_horde_samplers
+from extension.utils_remote import decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_samplers
 
-from multiprocessing.pool import ThreadPool
-import requests
-import base64
 import json
-import io
-from PIL import Image
+
+class RemoteModel:
+    def __init__(self, checkpoint_info):
+        self.sd_checkpoint_info = checkpoint_info
+        self.sd_model_hash = ''
+
+def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):
+    try:
+        checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
+        modules.shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
+        modules.shared.sd_model = RemoteModel(checkpoint_info)
+        return True
+    except StopIteration:
+        return False
 
 class GenerateRemoteError(Exception):
     def __init__(self, service, error):
@@ -22,12 +31,14 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
     p.prompt = modules.shared.prompt_styles.apply_styles_to_prompt(p.prompt, p.styles)
     p.negative_prompt = modules.shared.prompt_styles.apply_negative_styles_to_prompt(p.negative_prompt, p.styles)
 
+    #================================== SD.Next ==================================
     if service == RemoteService.SDNext:
         if isinstance(p, StableDiffusionProcessingTxt2Img):
             pass
         elif isinstance(p, StableDiffusionProcessingImg2Img):
             pass
 
+    #================================== Stable Horde ==================================
     elif service ==  RemoteService.StableHorde:
         # Copyright NatanJunges
         if isinstance(p, StableDiffusionProcessingTxt2Img):
@@ -92,6 +103,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         elif isinstance(p, StableDiffusionProcessingImg2Img):
             pass
 
+    #================================== OmniInfer ==================================
     elif service == RemoteService.OmniInfer:
         if isinstance(p, StableDiffusionProcessingTxt2Img):
             headers = {
@@ -157,47 +169,13 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         elif isinstance(p, StableDiffusionProcessingImg2Img):
             pass
 
-
-def download_image(img_url):
-    # Copyright OmniInfer
-    attempts = 5
-    while attempts > 0:
-        try:
-            response = requests.get(img_url, timeout=5)
-            response.raise_for_status()
-            with io.BytesIO(response.content) as fp:
-                return Image.open(fp).copy()
-        except (requests.RequestException, Image.UnidentifiedImageError):
-            log.warning(f"RI: Failed to download {img_url}, retrying...")
-            attempts -= 1
-    return None
-
-def download_images(img_urls, num_threads=10):
-    # Copyright OmniInfer
-    with ThreadPool(num_threads) as pool:
-        images = pool.map(download_image, img_urls)
-
-    return list(filter(lambda img: img is not None, images))
-
-def decode_image(b64):
-    return Image.open(io.BytesIO(base64.b64decode(b64)))
-
-def get_image(img):
-    if img.startswith('http'):
-        return download_image(img)
-    else:
-        return decode_image(img)
-
 def process_images(p: StableDiffusionProcessing) -> Processed:
-    log.debug("test")
-
     remote_service = get_current_api_service()
 
     state.begin()
     state.sampling_steps = p.steps
     state.job_count = p.n_iter
     state.textinfo = f"Remote inference from {remote_service}"
-
     p = generate_images(remote_service, p)
     state.end()
     return p

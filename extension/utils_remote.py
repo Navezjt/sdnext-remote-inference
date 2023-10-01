@@ -3,8 +3,13 @@ import copy
 import requests
 import json
 import time
+import base64
+import io
+from PIL import Image
+from multiprocessing.pool import ThreadPool
 
 import modules.shared
+from modules.shared import log
 
 ModelType = Enum('ModelType', ['CHECKPOINT','LORA','TEXTUALINVERSION','CONTROLNET','VAE','UPSCALER','LYCORIS','HYPERNET'])
 RemoteService = Enum('RemoteService', ['Local', 'SDNext', 'StableHorde', 'OmniInfer'])
@@ -76,7 +81,38 @@ def get_or_error_with_cache(service, path):
     cache[cache_key] = (result, time.time())
     return result
 
+def download_image(img_url):
+    # Copyright OmniInfer
+    attempts = 5
+    while attempts > 0:
+        try:
+            response = requests.get(img_url, timeout=5)
+            response.raise_for_status()
+            with io.BytesIO(response.content) as fp:
+                return Image.open(fp).copy()
+        except (requests.RequestException, Image.UnidentifiedImageError):
+            log.warning(f"RI: Failed to download {img_url}, retrying...")
+            attempts -= 1
+    return None
+
+def download_images(img_urls, num_threads=10):
+    # Copyright OmniInfer
+    with ThreadPool(num_threads) as pool:
+        images = pool.map(download_image, img_urls)
+
+    return list(filter(lambda img: img is not None, images))
+
+def decode_image(b64):
+    return Image.open(io.BytesIO(base64.b64decode(b64)))
+
+def get_image(img):
+    if img.startswith('http'):
+        return download_image(img)
+    else:
+        return decode_image(img)
+
 stable_horde_samplers =  {
+    # Copyright NatanJunges
     "LMS": "k_lms",
     "LMS Karras": "k_lms",
     "Heun": "k_heun",
