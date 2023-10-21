@@ -105,6 +105,11 @@ def download_images(img_urls, num_threads=10):
 def decode_image(b64):
     return Image.open(io.BytesIO(base64.b64decode(b64)))
 
+def encode_image(image):
+    buffer = io.BytesIO()
+    image.save(buffer, format="WEBP")
+    return base64.b64encode(buffer.getvalue()).decode()
+
 def get_image(img):
     if img.startswith('http'):
         return download_image(img)
@@ -114,31 +119,17 @@ def get_image(img):
 stable_horde_client = "SD.Next Remote Inference:rolling:QuantumSoul"
 
 stable_horde_samplers =  {
-    # Copyright NatanJunges
     "LMS": "k_lms",
-    "LMS Karras": "k_lms",
     "Heun": "k_heun",
-    "Heun Karras": "k_heun",
     "Euler": "k_euler",
-    "Euler Karras": "k_euler",
     "Euler a": "k_euler_a",
-    "Euler a Karras": "k_euler_a",
     "DPM2": "k_dpm_2",
-    "DPM2 Karras": "k_dpm_2",
     "DPM2 a": "k_dpm_2_a",
-    "DPM2 a Karras": "k_dpm_2_a",
     "DPM fast": "k_dpm_fast",
-    "DPM fast Karras": "k_dpm_fast",
     "DPM adaptive": "k_dpm_adaptive",
-    "DPM adaptive Karras": "k_dpm_adaptive",
     "DPM++ 2S a": "k_dpmpp_2s_a",
-    "DPM++ 2S a Karras": "k_dpmpp_2s_a",
     "DPM++ 2M": "k_dpmpp_2m",
-    "DPM++ 2M Karras": "k_dpmpp_2m",
     "DPM solver": "dpmsolver",
-    "DPM solver Karras": "dpmsolver",
     "DPM++ SDE": "k_dpmpp_sde",
-    "DPM++ SDE Karras": "k_dpmpp_sde",
     "DDIM": "DDIM",
-    "DDIM Karras": "DDIM"
-}
+    }

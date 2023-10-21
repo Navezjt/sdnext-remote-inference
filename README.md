@@ -19,20 +19,21 @@ Aimed to be universal for all providers, feel free to request other providers.
 | VAE browser                 |      🆗      |      ❌      |     🆗     |
 | ***Generation***            |             |              |            |
 | From Text                   |      🆗      |      🆗+     |     🆗+    |
-| From Image                  |      🆗      |      🆗      |     🆗     |
-| Second pass (hires/refiner) |      🆗      |      🆗      |     🆗     |
+| From Image                  |      🆗      |      🆗+     |     🆗     |
+| Inpainting                  |      🆗      |      🆗+     |     🆗     |
+| Second pass (hires/refiner) |      🆗      |      🆗+     |     🆗     |
 | ControlNet                  |      🆗      |      🆗      |     🆗     |
-| Inpainting                  |      🆗      |      🆗      |     🆗     |
 | Upscale                     |      🆗      |      🆗      |     🆗     |
 | ***User***                  |             |              |            |
 | Balance (credits/kudos)     |      ❌      |      ✅      |     ✅     |
 | Generation cost estimation  |      ❌      |      🆗      |     🆗     |
 | Image rating                |      ❌      |      🆗      |     ❌     |
 
-✅ functional
-🆗 work in progress
-⭕ not needed
-❌ not supported
+- ✅ functional
+- 🆗+ work in progress
+- 🆗 planned
+- ⭕ not needed
+- ❌ not supported
 
 ## Additional features
 - API calls caching
