@@ -15,9 +15,8 @@ Aimed to be universal for all providers, feel free to request other providers.
 | Checkpoints browser         |      ✅      |      ✅      |     ✅     |
 | Loras browser               |      ✅      |      ⭕      |     ✅     |
 | Embeddings browser          |      ✅      |      ⭕      |     ✅     |
-| Lycoris browser             |      🆗      |      ❌      |     ❌     |
 | Hypernet browser            |      🆗      |      ❌      |     ❌     |
-| VAE selection               |      🆗      |      ❌      |     🆗     |
+| VAE browser                 |      🆗      |      ❌      |     🆗     |
 | ***Generation***            |             |              |            |
 | From Text                   |      🆗      |      🆗+     |     🆗+    |
 | From Image                  |      🆗      |      🆗      |     🆗     |
@@ -36,7 +35,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 ❌ not supported
 
 ## Additional features
-- Extra networks lists caching
+- API calls caching
 - Hide NSFW networks option
 
 # Installation & usage
