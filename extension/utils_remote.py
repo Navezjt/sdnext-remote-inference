@@ -69,15 +69,15 @@ def request_or_error(service, path, headers=None, method='GET', data=None):
     return json.loads(response.content)
 
 cache = {}
-def get_or_error_with_cache(service, path):
+def get_or_error_with_cache(service, path, headers=None, cache_time=None):
     global cache
     cache_key = (service, path)
     if cache_key in cache:
         result, timestamp = cache[cache_key]
-        if time.time() - timestamp <= modules.shared.opts.remote_model_browser_cache_time:
+        if time.time() - timestamp <= (cache_time or modules.shared.opts.remote_extra_networks_cache_time):
             return result
 
-    result = request_or_error(service, path)
+    result = request_or_error(service, path, headers)
     cache[cache_key] = (result, time.time())
     return result
 

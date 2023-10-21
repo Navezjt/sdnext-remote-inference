@@ -11,15 +11,15 @@ class RemoteModel:
     def __init__(self, checkpoint_info):
         self.sd_checkpoint_info = checkpoint_info
         self.sd_model_hash = ''
+        self.is_sdxl = False
 
 def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='model'):
     try:
         checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
         modules.shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
-        modules.shared.sd_model = RemoteModel(checkpoint_info)
-        return True
+        return RemoteModel(checkpoint_info)
     except StopIteration:
-        return False
+        return None
 
 class GenerateRemoteError(Exception):
     def __init__(self, service, error):

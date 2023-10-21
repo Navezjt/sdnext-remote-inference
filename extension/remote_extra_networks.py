@@ -8,7 +8,8 @@ import modules.textual_inversion
 import modules.sd_hijack
 import modules.ui_extra_networks
 log = modules.shared.log
-import lora
+import network
+import networks
 
 from extension.utils_remote import ModelType, RemoteService, get_current_api_service, get_remote_endpoint, safeget, get_or_error_with_cache
 
@@ -50,7 +51,7 @@ def get_remote(model_type: ModelType, service: RemoteService):
             
             for model in sorted(model_list, key=lambda model: (-model['count'], model['name'])):
                 model_data = safeget(data_models, model['name'])
-                if not safeget(model_data, 'nsfw') or not modules.shared.opts.skip_nsfw_models: 
+                if not safeget(model_data, 'nsfw') or modules.shared.opts.show_nsfw_models: 
                     RemoteCheckpointInfo(f"{model['name']} ({model['count']})", safeget(model_data,'showcases',0), safeget(model_data,'description'), filename=model['name'])
     
         elif model_type == ModelType.LORA:
@@ -68,7 +69,7 @@ def get_remote(model_type: ModelType, service: RemoteService):
         for model in model_list:
             model.update({'name': model['name'].lstrip()})
         model_list = sorted(model_list, key=lambda model: str.lower(model['name']))
-        if modules.shared.opts.skip_nsfw_models:
+        if not modules.shared.opts.show_nsfw_models:
             model_list = list(filter(lambda x: not x['civitai_nsfw'], model_list))
             for model in model_list:
                 if 'civitai_images' in model:
@@ -76,7 +77,8 @@ def get_remote(model_type: ModelType, service: RemoteService):
 
         if model_type == ModelType.CHECKPOINT:
             for model in filter(lambda model: model['type'] == 'checkpoint', model_list):
-                RemoteCheckpointInfo(model['name'], safeget(model, 'civitai_images', 0, 'url'), filename=model['sd_name'])
+                tags = {tag:0 for tag in model['civitai_tags'].split(',')} if 'civitai_tags' in model else {}
+                RemoteCheckpointInfo(model['name'], safeget(model, 'civitai_images', 0, 'url'), filename=model['sd_name'], tags=tags)
 
         elif model_type == ModelType.LORA:          
             for model in filter(lambda model: model['type'] == 'lora', model_list):
@@ -85,7 +87,8 @@ def get_remote(model_type: ModelType, service: RemoteService):
 
         elif model_type == ModelType.TEXTUALINVERSION:
             for model in filter(lambda model: model['type'] == 'textualinversion', model_list):
-                RemoteEmbedding(model['name'], safeget(model, 'civitai_images', 0, 'url'))
+                tags = {tag:0 for tag in model['civitai_tags'].split(',')} if 'civitai_tags' in model else {}
+                RemoteEmbedding(model['name'], safeget(model, 'civitai_images', 0, 'url'), tags=tags)
 
 class PreviewDescriptionInfo():
     no_preview = modules.ui_extra_networks.ExtraNetworksPage.link_preview(None, 'html/card-no-preview.png')
@@ -97,7 +100,7 @@ class PreviewDescriptionInfo():
 
 #============================================= CHECKPOINTS =============================================
 class RemoteCheckpointInfo(modules.sd_models.CheckpointInfo, PreviewDescriptionInfo):
-    def __init__(self, name, preview_url=None, description=None, info=None, filename=''):
+    def __init__(self, name, preview_url=None, description=None, info=None, filename='', tags={}):
         PreviewDescriptionInfo.__init__(self, preview_url, description, info)
 
         self.name = self.name_for_extra = self.model_name = self.title = name
@@ -108,6 +111,8 @@ class RemoteCheckpointInfo(modules.sd_models.CheckpointInfo, PreviewDescriptionI
         self.metadata = {}
         self.sha256 = self.hash = self.shorthash = None
         self.filename = self.path = filename
+
+        self.tags = tags
 
         self.register()
 
@@ -124,21 +129,22 @@ def list_remote_models():
 def extra_networks_checkpoints_list_items(self):
     for name, checkpoint in modules.sd_models.checkpoints_list.items():
         yield {
+            "type": 'Model',
             "name": name,
+            "title": checkpoint.title,
             "filename": checkpoint.filename,
-            "fullname": name,
             "hash": None,
+            "search_term": name + ' '.join(checkpoint.tags),
             "preview": checkpoint.preview,
+            "local_preview": None,
             "description": checkpoint.description,
             "info": checkpoint.info,
-            "search_term": f'{name} /{checkpoint.type}/',
-            "onclick": '"' + html.escape(f"""return selectCheckpoint({json.dumps(name)})""") + '"',
-            "local_preview": None,
             "metadata": checkpoint.metadata,
+            "onclick": '"' + html.escape(f"""return selectCheckpoint({json.dumps(name)})""") + '"',
         }
 
 #============================================= LORAS =============================================       
-class RemoteLora(lora.LoraOnDisk, PreviewDescriptionInfo):
+class RemoteLora(network.NetworkOnDisk, PreviewDescriptionInfo):
     def __init__(self, name, preview_url=None, description=None, info=None, tags={}, filename=''):
         PreviewDescriptionInfo.__init__(self, preview_url, description, info)
 
@@ -154,38 +160,38 @@ class RemoteLora(lora.LoraOnDisk, PreviewDescriptionInfo):
         self.register()
 
     def register(self):
-        lora.available_loras[self.name] = self
-        if self.alias in lora.available_lora_aliases:
-            lora.forbidden_lora_aliases[self.alias.lower()] = 1
-        lora.available_lora_aliases[self.name] = self
+        networks.available_networks[self.name] = self
+        if self.alias in networks.available_network_aliases:
+            networks.forbidden_network_aliases[self.alias.lower()] = 1
+        networks.available_network_aliases[self.name] = self
 
 def list_remote_loras():
     api_service = get_current_api_service()
 
-    lora.available_loras.clear()
-    lora.available_lora_aliases.clear()
-    lora.forbidden_lora_aliases.clear()
-    lora.available_lora_hash_lookup.clear()
-    lora.forbidden_lora_aliases.update({"none": 1, "Addams": 1})
+    networks.available_networks.clear()
+    networks.available_network_aliases.clear()
+    networks.forbidden_network_aliases.clear()
+    networks.available_network_hash_lookup.clear()
+    networks.forbidden_network_aliases.update({"none": 1, "Addams": 1})
 
     log_debug_model_list(ModelType.LORA, api_service)
     get_remote(ModelType.LORA, api_service)
-    log_info_model_count(ModelType.LORA, api_service, len(lora.available_loras))
+    log_info_model_count(ModelType.LORA, api_service, len(networks.available_networks))
 
 def extra_networks_loras_list_items(self):
-    for name, remote_lora in lora.available_loras.items():
+    for name, remote_lora in networks.available_networks.items():
         prompt = f" <lora:{remote_lora.get_alias()}:{modules.shared.opts.extra_networks_default_multiplier}>"
         prompt = json.dumps(prompt)
 
         yield {
+            "type": 'Lora',
             "name": name,
             "filename": remote_lora.filename,
-            "fullname": name,
             "hash": None,
+            "search_term": name + ' '.join(remote_lora.tags),
             "preview": remote_lora.preview,
             "description": remote_lora.description,
             "info": remote_lora.info,
-            "search_term": name,
             "prompt": prompt,
             "local_preview": None,
             "metadata": remote_lora.metadata,
@@ -194,11 +200,12 @@ def extra_networks_loras_list_items(self):
 
 #============================================= EMBEDDINGS =============================================
 class RemoteEmbedding(modules.textual_inversion.textual_inversion.Embedding, PreviewDescriptionInfo):
-    def __init__(self, name, preview_url=None, description=None, info=None, filename=''):
+    def __init__(self, name, preview_url=None, description=None, info=None, filename='', tags={}):
         super().__init__(None, name)
         PreviewDescriptionInfo.__init__(self, preview_url, description, info)
 
         self.filename = filename
+        self.tags = tags
 
         self.register()
 
@@ -225,12 +232,14 @@ def list_remote_embeddings(self, force_reload=False):
 def extra_networks_textual_inversions_list_items(self):
     for name, embedding in modules.sd_hijack.model_hijack.embedding_db.word_embeddings.items():
         yield {
+            "type": 'Embedding',
             "name": name,
             "filename": embedding.filename,
             "preview": embedding.preview,
             "description": embedding.description,
             "info": embedding.info,
-            "search_term": name,
+            "search_term": name + ' '.join(embedding.tags),
             "prompt": name,
             "local_preview": None,
+            "tags": embedding.tags,
         }

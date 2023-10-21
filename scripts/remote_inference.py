@@ -1,7 +1,8 @@
 import modules.sd_models
 import modules.ui_extra_networks_checkpoints
-import lora
 import ui_extra_networks_lora
+import networks
+
 import modules.textual_inversion.textual_inversion
 import modules.ui_extra_networks_textual_inversion
 
@@ -24,7 +25,7 @@ def on_app_started(blocks, _app):
     modules.sd_models.list_models = make_conditional_hook(modules.sd_models.list_models, extension.remote_extra_networks.list_remote_models)
     modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = make_conditional_hook(modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items, extension.remote_extra_networks.extra_networks_checkpoints_list_items)
 
-    lora.list_available_loras = make_conditional_hook(lora.list_available_loras, extension.remote_extra_networks.list_remote_loras)
+    networks.list_available_networks = make_conditional_hook(networks.list_available_networks, extension.remote_extra_networks.list_remote_loras)
     ui_extra_networks_lora.ExtraNetworksPageLora.list_items = make_conditional_hook(ui_extra_networks_lora.ExtraNetworksPageLora.list_items, extension.remote_extra_networks.extra_networks_loras_list_items)
 
     modules.textual_inversion.textual_inversion.EmbeddingDatabase.load_textual_inversion_embeddings = make_conditional_hook(modules.textual_inversion.textual_inversion.EmbeddingDatabase.load_textual_inversion_embeddings, extension.remote_extra_networks.list_remote_embeddings)
@@ -37,7 +38,7 @@ def on_app_started(blocks, _app):
 
     # UI
     with blocks:
-        gr.HTML(value=extension.remote_balance.get_remote_balance_html, elem_id='remote_inference_balance', every=30)
+        gr.HTML(value=extension.remote_balance.get_remote_balance_html, elem_id='remote_inference_balance', every=10.0)
 
 modules.script_callbacks.on_app_started(on_app_started)
 
@@ -52,8 +53,10 @@ def on_ui_settings():
     endpoint_setting_names[RemoteService.OmniInfer]: OptionInfo(default_endpoints[RemoteService.OmniInfer], 'OmniInfer API endpoint'),
     apikey_setting_names[RemoteService.OmniInfer]: OptionInfo('', 'OmniInfer API Key', gr.Textbox, {"type": "password"}),
 
-    'remote_model_browser_cache_time': OptionInfo(600, 'Cache time (in seconds) for remote extra networks api calls', gr.Slider, {"minimum": 1, "maximum": 3600, "step": 1}),
-    'skip_nsfw_models': OptionInfo(True, "Don't show (most of) NSFW networks (StableHorde/OmniInfer)")
+    'remote_balance_cache_time': OptionInfo(60, 'Cache time (in seconds) for remote balance api calls', gr.Slider, {"minimum": 60, "maximum": 3600, "step": 60}),
+    'show_remote_balance': OptionInfo(True, "Show top right available balance"),
+    'remote_extra_networks_cache_time': OptionInfo(600, 'Cache time (in seconds) for remote extra networks api calls', gr.Slider, {"minimum": 60, "maximum": 3600, "step": 60}),
+    'show_nsfw_models': OptionInfo(False, "Show NSFW networks (StableHorde/OmniInfer)")
     }))
 
     if modules.shared.opts.quicksettings_list[0] != 'remote_inference_service':
