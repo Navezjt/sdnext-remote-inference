@@ -26,10 +26,12 @@ def get_remote(model_type: ModelType, service: RemoteService):
     #================================== SD.Next ==================================
     if service == RemoteService.SDNext:
         model_list = get_or_error_with_cache(service, "/sdapi/v1/extra-networks")
+        for model in model_list:
+            model.update({'name': model['name'].split('\\')[-1]})
         model_list = sorted(model_list, key=lambda model: str.lower(model['name']))
 
         if model_type == ModelType.CHECKPOINT:
-            for model in filter(lambda model: model['type'] == 'checkpoints', model_list):
+            for model in filter(lambda model: model['type'] == 'model', model_list):
                 RemoteCheckpointInfo(model['name'], sdnext_preview_url(model['preview']), filename=model['filename'])
 
         elif model_type == ModelType.LORA:
@@ -37,13 +39,14 @@ def get_remote(model_type: ModelType, service: RemoteService):
                 RemoteLora(model['name'], sdnext_preview_url(model['preview']), filename=model['filename'])
 
         elif model_type == ModelType.TEXTUALINVERSION:
-            for model in filter(lambda model: model['type'] == 'textual inversion', model_list):
+            for model in filter(lambda model: model['type'] == 'embedding', model_list):
                 RemoteEmbedding(model['name'], sdnext_preview_url(model['preview']), filename=model['filename'])
 
     #================================== Stable Horde ==================================
     elif service == RemoteService.StableHorde:
         if model_type == ModelType.CHECKPOINT:          
             model_list = get_or_error_with_cache(service, "/v2/status/models")
+
             model_list = filter(lambda model: model['type'] == 'image', model_list)
             
             data = json.loads(requests.get('https://github.com/Haidra-Org/AI-Horde-image-model-reference/blob/main/stable_diffusion.json').content)
@@ -78,7 +81,7 @@ def get_remote(model_type: ModelType, service: RemoteService):
         if model_type == ModelType.CHECKPOINT:
             for model in filter(lambda model: model['type'] == 'checkpoint', model_list):
                 tags = {tag:0 for tag in model['civitai_tags'].split(',')} if 'civitai_tags' in model else {}
-                RemoteCheckpointInfo(model['name'], safeget(model, 'civitai_images', 0, 'url'), filename=model['sd_name'], tags=tags)
+                RemoteCheckpointInfo(model['name'], safeget(model, 'civitai_imvars(p)ages', 0, 'url'), filename=model['sd_name'], tags=tags)
 
         elif model_type == ModelType.LORA:          
             for model in filter(lambda model: model['type'] == 'lora', model_list):

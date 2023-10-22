@@ -18,10 +18,10 @@ Aimed to be universal for all providers, feel free to request other providers.
 | Hypernet browser            |      🆗     |      ❌      |     ❌     |
 | VAE browser                 |      🆗     |      ❌      |     🆗     |
 | ***Generation***            |             |              |            |
-| From Text                   |      🆗     |      ✅      |     🆗+    |
-| From Image                  |      🆗     |      ✅      |     🆗     |
-| Inpainting                  |      🆗     |      ✅      |     🆗     |
-| Second pass (hires/refiner) |      🆗     |      ✅      |     🆗     |
+| From Text                   |      ✅     |      ✅      |     🆗+    |
+| From Image                  |      🆗*    |      ✅      |     🆗     |
+| Inpainting                  |      🆗*    |      ✅      |     🆗     |
+| Second pass (hires/refiner) |      🆗*    |      ✅      |     🆗     |
 | Loras and TIs               |      🆗     |      🆗      |     🆗     |
 | ControlNet                  |      🆗     |      🆗      |     🆗     |
 | Upscale                     |      🆗     |      🆗      |     🆗     |

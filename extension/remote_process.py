@@ -8,6 +8,7 @@ from extension.utils_remote import encode_image, decode_image, download_images, 
 
 import json
 import time
+import math
 
 class RemoteModel:
     def __init__(self, checkpoint_info):
@@ -35,10 +36,24 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
 
     #================================== SD.Next ==================================
     if service == RemoteService.SDNext:
+        data = vars(p)
+        txt2img_keys = ["enable_hr", "denoising_strength", "firstphase_width", "firstphase_height", "hr_scale", "hr_force", "hr_upscaler", "hr_second_pass_steps", "hr_resize_x", "hr_resize_y", "refiner_steps", "refiner_start", "refiner_prompt", "refiner_negative", "prompt", "styles", "seed", "subseed", "subseed_strength", "seed_resize_from_h", "seed_resize_from_w", "sampler_name", "latent_sampler", "batch_size", "n_iter", "steps", "cfg_scale", "image_cfg_scale", "clip_skip", "width", "height", "full_quality", "restore_faces", "tiling", "do_not_save_samples", "do_not_save_grid", "negative_prompt", "eta", "diffusers_guidance_rescale", "override_settings", "override_settings_restore_afterwards", "sampler_index", "script_name", "send_images", "save_images", "alwayson_scripts"] #"script_args", "sampler_index"
+        img2img_keys = ["init_images", "resize_mode", "denoising_strength", "image_cfg_scale", "mask", "mask_blur", "inpainting_fill", "inpaint_full_res", "inpaint_full_res_padding", "inpainting_mask_invert", "initial_noise_multiplier", "refiner_steps", "refiner_start", "refiner_prompt", "refiner_negative", "prompt", "styles", "seed", "subseed", "subseed_strength", "seed_resize_from_h", "seed_resize_from_w", "sampler_name", "latent_sampler", "batch_size", "n_iter", "steps", "cfg_scale", "clip_skip", "width", "height", "full_quality", "restore_faces", "tiling", "do_not_save_samples", "do_not_save_grid", "negative_prompt", "eta", "diffusers_guidance_rescale", "override_settings", "override_settings_restore_afterwards", "sampler_index", "include_init_images", "script_name", "send_images", "save_images", "alwayson_scripts"] #"script_args", "sampler_index"
+        processed_keys = ["seed", "info", "subseed", "all_prompts", "all_negative_prompts", "all_seeds", "all_subseeds", "index_of_first_image", "infotexts", "comments"]
+
         if isinstance(p, StableDiffusionProcessingTxt2Img):
-            pass
+            data = {key: data[key] for key in txt2img_keys if key in data.keys()}
+            log.debug(data)
+            response = request_or_error(service, '/sdapi/v1/txt2img', method='POST', data=data)
         elif isinstance(p, StableDiffusionProcessingImg2Img):
-            pass
+            data = {key: data[key] for key in img2img_keys if key in data.keys()}
+            log.debug(data)
+            response = request_or_error(service, '/sdapi/v1/img2img', method='POST', data=data)
+
+        log.debug(f"RI: response: {response}")
+        info = json.loads(response['info'])
+        info = {key: info[key] for key in processed_keys if key in info.keys()}
+        return Processed(p=p, images_list=[decode_image(img) for img in response['images']], **info)
 
     #================================== Stable Horde ==================================
     # Copyright NatanJunges https://github.com/natanjunges/stable-diffusion-webui-stable-horde/blob/00248b89bfab7ba465f104324a5d0708ad37341f/scripts/main.py#L376
@@ -214,8 +229,8 @@ def save_images_and_add_grid(proc: Processed, p:StableDiffusionProcessing):
         for i,img in enumerate(proc.images):
             modules.images.save_image(img, path=p.outpath_samples, basename="", seed=proc.all_seeds[i], prompt=proc.all_prompts[i], extension=opts.samples_format, info=proc.infotexts[i], p=p)
 
-    if (opts.return_grid or opts.grid_save) and not p.do_not_save_grid and not (len(proc.images) < 2 and opts.grid_only_if_multiple):
-        grid = modules.images.image_grid(proc.images, len(proc.images))
+    if (opts.return_grid or opts.grid_save) and not p.do_not_save_grid and len(proc.images) >= 2:
+        grid = modules.images.image_grid(proc.images, math.ceil(math.sqrt(len(proc.images))))
         info = '\n'.join(proc.infotexts)
 
         if opts.return_grid:
