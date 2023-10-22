@@ -9,25 +9,26 @@ Aimed to be universal for all providers, feel free to request other providers.
 - other ?
 
 # Features
-|                             | SD.Next API | Stable Horde | OmniInfer |
-|-----------------------------|:-----------:|:-----------:|:----------:|
+|                             | SD.Next API | Stable Horde | OmniInfer  |
+|-----------------------------|:-----------:|:------------:|:----------:|
 | ***Model browsing***        |             |              |            |
-| Checkpoints browser         |      ✅      |      ✅      |     ✅     |
-| Loras browser               |      ✅      |      ⭕      |     ✅     |
-| Embeddings browser          |      ✅      |      ⭕      |     ✅     |
-| Hypernet browser            |      🆗      |      ❌      |     ❌     |
-| VAE browser                 |      🆗      |      ❌      |     🆗     |
+| Checkpoints browser         |      ✅     |      ✅      |     ✅     |
+| Loras browser               |      ✅     |      ⭕      |     ✅     |
+| Embeddings browser          |      ✅     |      ⭕      |     ✅     |
+| Hypernet browser            |      🆗     |      ❌      |     ❌     |
+| VAE browser                 |      🆗     |      ❌      |     🆗     |
 | ***Generation***            |             |              |            |
-| From Text                   |      🆗      |      🆗+     |     🆗+    |
-| From Image                  |      🆗      |      🆗+     |     🆗     |
-| Inpainting                  |      🆗      |      🆗+     |     🆗     |
-| Second pass (hires/refiner) |      🆗      |      🆗+     |     🆗     |
-| ControlNet                  |      🆗      |      🆗      |     🆗     |
-| Upscale                     |      🆗      |      🆗      |     🆗     |
+| From Text                   |      🆗     |      ✅      |     🆗+    |
+| From Image                  |      🆗     |      ✅      |     🆗     |
+| Inpainting                  |      🆗     |      ✅      |     🆗     |
+| Second pass (hires/refiner) |      🆗     |      ✅      |     🆗     |
+| Loras and TIs               |      🆗     |      🆗      |     🆗     |
+| ControlNet                  |      🆗     |      🆗      |     🆗     |
+| Upscale                     |      🆗     |      🆗      |     🆗     |
 | ***User***                  |             |              |            |
-| Balance (credits/kudos)     |      ❌      |      ✅      |     ✅     |
-| Generation cost estimation  |      ❌      |      🆗      |     🆗     |
-| Image rating                |      ❌      |      🆗      |     ❌     |
+| Balance (credits/kudos)     |      ❌     |      ✅      |     ✅     |
+| Generation cost estimation  |      ❌     |      🆗      |     🆗     |
+| Image rating                |      ❌     |      🆗      |     ❌     |
 
 - ✅ functional
 - 🆗+ work in progress
@@ -36,8 +37,9 @@ Aimed to be universal for all providers, feel free to request other providers.
 - ❌ not supported
 
 ## Additional features
+- Stable Horde worker settings
 - API calls caching
-- Hide NSFW networks option
+- Hide NSFW networks option (Stable Horde / OmniInfer)
 
 # Installation & usage
 1. Launch SD.Next with `--no-download` option

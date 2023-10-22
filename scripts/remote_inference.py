@@ -45,18 +45,32 @@ modules.script_callbacks.on_app_started(on_app_started)
 # SETTINGS
 def on_ui_settings():
     modules.shared.options_templates.update(options_section(('sdnext_remote_inference', "Remote Inference"),{
-    'remote_inference_service': OptionInfo(RemoteService.Local.name, "Remote inference service", gr.Dropdown, {"choices": [e.name for e in RemoteService]}),
+        'remote_sdnext_sep': OptionInfo("<h2>SD.Next API</h2>", "", gr.HTML),
+        endpoint_setting_names[RemoteService.SDNext]: OptionInfo(default_endpoints[RemoteService.SDNext], 'SD.Next API endpoint'),
 
-    endpoint_setting_names[RemoteService.SDNext]: OptionInfo(default_endpoints[RemoteService.SDNext], 'SD.Next API endpoint'),
-    endpoint_setting_names[RemoteService.StableHorde]: OptionInfo(default_endpoints[RemoteService.StableHorde], 'StableHorde API endpoint'),
-    apikey_setting_names[RemoteService.StableHorde]: OptionInfo('', 'StableHorde API Key', gr.Textbox, {"type": "password"}),
-    endpoint_setting_names[RemoteService.OmniInfer]: OptionInfo(default_endpoints[RemoteService.OmniInfer], 'OmniInfer API endpoint'),
-    apikey_setting_names[RemoteService.OmniInfer]: OptionInfo('', 'OmniInfer API Key', gr.Textbox, {"type": "password"}),
+        'remote_horde_sep': OptionInfo("<h2>Stable Horde</h2>", "", gr.HTML),
+        endpoint_setting_names[RemoteService.StableHorde]: OptionInfo(default_endpoints[RemoteService.StableHorde], 'StableHorde API endpoint'),
+        apikey_setting_names[RemoteService.StableHorde]: OptionInfo('0000000000', 'StableHorde API Key (\'0000000000\' for anonymous)', gr.Textbox, {"type": "password"}),
+        'horde_apikey_url': OptionInfo('<p>Get an API key <a href="https://stablehorde.net/register">here</a></p>', "", gr.HTML),
+        'horde_nsfw': OptionInfo(False, "Enable NSFW generation (will skip anti-nsfw workers)"),
+        'horde_censor_nsfw': OptionInfo(False, "Censor NSFW generations"),
+        'horde_trusted_workers': OptionInfo(False, "Only trusted workers (slower but less risk)"),
+        'horde_slow_workers': OptionInfo(True, "Allow slow workers (extra kudos cost if disabled)"),
+        'horde_workers': OptionInfo('', "Comma-separated list of allowed/disallowed workers (max 5)"),
+        'horde_worker_blacklist': OptionInfo(False, "Above list is a blacklist instead of a whitelist"),
+        'horde_share_laion': OptionInfo(False, 'Share images with LAION for improving their dataset, reduce your kudos consumption by 2 (always True for anonymous users)'),
 
-    'remote_balance_cache_time': OptionInfo(60, 'Cache time (in seconds) for remote balance api calls', gr.Slider, {"minimum": 60, "maximum": 3600, "step": 60}),
-    'show_remote_balance': OptionInfo(True, "Show top right available balance"),
-    'remote_extra_networks_cache_time': OptionInfo(600, 'Cache time (in seconds) for remote extra networks api calls', gr.Slider, {"minimum": 60, "maximum": 3600, "step": 60}),
-    'show_nsfw_models': OptionInfo(False, "Show NSFW networks (StableHorde/OmniInfer)")
+        'remote_omniinfer_sep': OptionInfo("<h2>OmniInfer</h2>", "", gr.HTML),
+        endpoint_setting_names[RemoteService.OmniInfer]: OptionInfo(default_endpoints[RemoteService.OmniInfer], 'OmniInfer API endpoint'),
+        apikey_setting_names[RemoteService.OmniInfer]: OptionInfo('', 'OmniInfer API Key', gr.Textbox, {"type": "password"}),
+        'omniinfer_apikey_url': OptionInfo('<p>Get an API key <a href="https://www.omniinfer.io/dashboard/key">here</a></p>', "", gr.HTML),
+
+        'remote_general_sep': OptionInfo("<h2>Other Settings</h2>", "", gr.HTML),
+        'remote_inference_service': OptionInfo(RemoteService.Local.name, "Remote inference service", gr.Dropdown, {"choices": [e.name for e in RemoteService]}),
+        'remote_balance_cache_time': OptionInfo(60, 'Cache time (in seconds) for remote balance api calls', gr.Slider, {"minimum": 60, "maximum": 3600, "step": 60}),
+        'remote_extra_networks_cache_time': OptionInfo(600, 'Cache time (in seconds) for remote extra networks api calls', gr.Slider, {"minimum": 60, "maximum": 3600, "step": 60}),
+        'show_remote_balance': OptionInfo(True, "Show top right available balance box"),
+        'show_nsfw_models': OptionInfo(False, "Show NSFW networks (StableHorde/OmniInfer)")
     }))
 
     if modules.shared.opts.quicksettings_list[0] != 'remote_inference_service':
