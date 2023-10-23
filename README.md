@@ -19,9 +19,9 @@ Aimed to be universal for all providers, feel free to request other providers.
 | VAE browser                 |      🆗     |      ❌      |     🆗     |
 | ***Generation***            |             |              |            |
 | From Text                   |      ✅     |      ✅      |     🆗+    |
-| From Image                  |      🆗*    |      ✅      |     🆗     |
-| Inpainting                  |      🆗*    |      ✅      |     🆗     |
-| Second pass (hires/refiner) |      🆗*    |      ✅      |     🆗     |
+| From Image                  |      🆗+    |      ✅      |     🆗     |
+| Inpainting                  |      🆗+    |      ✅      |     🆗     |
+| Second pass (hires/refiner) |      🆗+    |      ✅      |     🆗     |
 | Loras and TIs               |      🆗     |      🆗      |     🆗     |
 | ControlNet                  |      🆗     |      🆗      |     🆗     |
 | Upscale                     |      🆗     |      🆗      |     🆗     |
@@ -48,7 +48,7 @@ Aimed to be universal for all providers, feel free to request other providers.
     2. Go to extensions > manage extensions > apply changes & restart server
     3. Go to system > settings > remote inference > set right api endpoints & keys
 3. Usage
-    1. Select desired remote inference service in dropdown, refresh model list and select model
+    1. Select desired remote inference service in dropdown, **refresh model list** and **select model**
     2. Set generations parameters as usual and click generate
 
 # Credits
