@@ -9,6 +9,7 @@ from extension.utils_remote import encode_image, decode_image, download_images, 
 import json
 import time
 import math
+from PIL import Image
 
 class RemoteModel:
     def __init__(self, checkpoint_info):
@@ -41,13 +42,17 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         img2img_keys = ["init_images", "resize_mode", "denoising_strength", "image_cfg_scale", "mask", "mask_blur", "inpainting_fill", "inpaint_full_res", "inpaint_full_res_padding", "inpainting_mask_invert", "initial_noise_multiplier", "refiner_steps", "refiner_start", "refiner_prompt", "refiner_negative", "prompt", "styles", "seed", "subseed", "subseed_strength", "seed_resize_from_h", "seed_resize_from_w", "sampler_name", "latent_sampler", "batch_size", "n_iter", "steps", "cfg_scale", "clip_skip", "width", "height", "full_quality", "restore_faces", "tiling", "do_not_save_samples", "do_not_save_grid", "negative_prompt", "eta", "diffusers_guidance_rescale", "override_settings", "override_settings_restore_afterwards", "sampler_index", "include_init_images", "script_name", "send_images", "save_images", "alwayson_scripts"] #"script_args", "sampler_index"
         processed_keys = ["seed", "info", "subseed", "all_prompts", "all_negative_prompts", "all_seeds", "all_subseeds", "index_of_first_image", "infotexts", "comments"]
 
-        if isinstance(p, StableDiffusionProcessingTxt2Img):
+        request_or_error(service, '/sdapi/v1/options', method='POST', data={'sd_model_checkpoint': opts.sd_model_checkpoint})
+        request_or_error(service, '/sdapi/v1/reload-checkpoint', method='POST')
+
+        if isinstance(p, StableDiffusionProcessingTxt2Img): 
             data = {key: data[key] for key in txt2img_keys if key in data.keys()}
             log.debug(data)
             response = request_or_error(service, '/sdapi/v1/txt2img', method='POST', data=data)
         elif isinstance(p, StableDiffusionProcessingImg2Img):
-            data = {key: data[key] for key in img2img_keys if key in data.keys()}
+            data = {key: data[key] for key in img2img_keys if key in data.keys() and data[key] is not None}
             log.debug(data)
+            data['init_images'] = [encode_image(img) for img in data['init_images']]
             response = request_or_error(service, '/sdapi/v1/img2img', method='POST', data=data)
 
         log.debug(f"RI: response: {response}")
