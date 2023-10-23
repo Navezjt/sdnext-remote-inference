@@ -19,7 +19,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 | VAE browser                 |      🆗     |      ❌      |     🆗     |
 | ***Generation***            |             |              |            |
 | From Text                   |      ✅     |      ✅      |     🆗+    |
-| From Image                  |      🆗+    |      ✅      |     🆗     |
+| From Image                  |      ✅     |      ✅      |     🆗     |
 | Inpainting                  |      🆗+    |      ✅      |     🆗     |
 | Second pass (hires/refiner) |      🆗+    |      ✅      |     🆗     |
 | Loras and TIs               |      🆗     |      🆗      |     🆗     |
