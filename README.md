@@ -41,6 +41,11 @@ Aimed to be universal for all providers, feel free to request other providers.
 - API calls caching
 - Hide NSFW networks option (Stable Horde / OmniInfer)
 
+## Why yet another extension ?
+There already are plenty of integrations of AI Horde. The point of this extension is to bring all remote providers into the same familiar UI instead of relying on other websites.
+Eventually I'd also like to add support for other SD.Next extensions like dynamic prompts, deforum, tiled diffusion, adetailer and regional prompter (UI extensions like aspect ratio, image browser, canvas zoom or openpose editor should already be supported).
+
+
 # Installation & usage
 1. Launch SD.Next with `--no-download` option
 2. Installation
