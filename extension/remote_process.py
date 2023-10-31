@@ -10,6 +10,7 @@ import json
 import time
 import math
 from PIL import Image
+import re
 
 class RemoteModel:
     def __init__(self, checkpoint_info):
@@ -61,9 +62,26 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         return Processed(p=p, images_list=[decode_image(img) for img in response['images']], **info)
 
     #================================== Stable Horde ==================================
-    # Copyright NatanJunges https://github.com/natanjunges/stable-diffusion-webui-stable-horde/blob/00248b89bfab7ba465f104324a5d0708ad37341f/scripts/main.py#L376
     elif service ==  RemoteService.StableHorde:
+    # Copyright NatanJunges https://github.com/natanjunges/stable-diffusion-webui-stable-horde/blob/00248b89bfab7ba465f104324a5d0708ad37341f/scripts/main.py#L376
         n = p.n_iter*p.batch_size
+
+        def extract(instr, pattern):
+            return re.sub(pattern, '', instr), re.findall(pattern, instr)
+        
+        prompt = p.prompt
+        negative_prompt = p.negative_prompt
+
+        prompt, pos_loras = extract(prompt, r'<lora:(\w+):([\d.]+)>')
+        negative_prompt, neg_loras = extract(negative_prompt, r'<lora:(\w+):([\d.]+)>')
+        loras = [(i,float(j)) for i,j in pos_loras] + [(i,-float(j)) for i,j in neg_loras]
+        prompt, pos_tis = extract(prompt, r'<ti:(\w+)>')
+        negative_prompt, neg_tis = extract(negative_prompt, r'<ti:(\w+)>')
+        tis = pos_tis+neg_tis
+
+        if len(loras) > 5:
+            raise GenerateRemoteError(service, 'Too many loras')
+
 
         headers = {
             "apikey": get_api_key(service),
@@ -71,7 +89,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
             "Content-Type": "application/json"
         }
         payload = {
-            "prompt": f"{p.prompt}###{p.negative_prompt}" if len(p.negative_prompt) > 0 else p.prompt,
+            "prompt": f"{prompt}###{negative_prompt}" if negative_prompt else prompt,
             "params": {
                 "sampler_name": stable_horde_samplers.get(p.sampler_name, "k_euler_a"),
                 "karras": opts.schedulers_sigma == 'karras',
@@ -82,7 +100,9 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
                 "height": p.height,
                 "width": p.width,
                 "steps": p.steps,
-                "n": n
+                "n": n,
+                "loras": [{"name": i, "model": j} for i,j in loras],
+                "tis": [{"name": i} for i in tis]
             },
             "models": [modules.shared.sd_model.sd_checkpoint_info.filename],
             "nsfw": opts.horde_nsfw,
@@ -113,13 +133,11 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         
         # todo
         # controlnet, postprocessing, upscale
-        # if model != "Random":
-        #     payload["models"] = [model]
 
         response = request_or_error(service, '/v2/generate/async', headers, method='POST', data=payload)
         uuid = response['id']
         
-        state.sampling_steps = 0
+        state.sampling_steps = 100
         state.job_count = n
         start = time.time()
 
@@ -129,10 +147,9 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
             elapsed = int(time.time() - start)
             state.sampling_steps = elapsed + status["wait_time"]
             state.sampling_step = elapsed
-            # state.current_image_sampling_step = (status['finished']/n)*state.sampling_steps
             
             if status['done']:
-                state.sampling_steps = state.sampling_step
+                state.sampling_step = state.sampling_steps
 
                 response = request_or_error(service, f'/v2/generate/status/{uuid}', headers)
 
@@ -162,70 +179,98 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
 
     #================================== OmniInfer ==================================
     elif service == RemoteService.OmniInfer:
+        headers = {
+            "X-Omni-Key": get_api_key(service),
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "prompt": p.prompt,
+            "negative_prompt": p.negative_prompt,
+            "model_name": modules.shared.sd_model.sd_checkpoint_info.filename,
+            "sampler_name": p.sampler_name,
+            "batch_size": p.batch_size,
+            "n_iter": p.n_iter,
+            "steps": p.steps,
+            "cfg_scale": p.cfg_scale,
+            "clip_skip": p.clip_skip,
+            "height": p.height,
+            "width": p.width,
+            "seed": p.seed
+        }
+
         if isinstance(p, StableDiffusionProcessingTxt2Img):
-            headers = {
-                "X-Omni-Key": get_api_key(service),
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "prompt": p.prompt,
-                "negative_prompt": p.negative_prompt,
-                "model_name": modules.shared.sd_model.sd_checkpoint_info.filename,
-                "sampler_name": p.sampler_name,
-                "batch_size": p.batch_size,
-                "n_iter": p.n_iter,
-                "steps": p.steps,
-                "cfg_scale": p.cfg_scale,
-                "clip_skip": p.clip_skip,
-                "height": p.height,
-                "width": p.width,
-                "seed": p.seed
-            }
-            
-            response = request_or_error(service, '/v2/txt2img', headers, method='POST', data=payload)
-            if response['code'] != 0:
-                raise GenerateRemoteError(service, response['msg'])
-            uuid = response['data']['task_id']
-
-            state.sampling_steps = p.steps
-            state.job_count = p.n_iter
-
-            processed_image_count = 1
-            while True:
-                response = request_or_error(service, f'/v2/progress?task_id={uuid}', headers)
-
-                if response['data']['status'] == 1:
-                    state.sampling_step = response['data']['progress']*state.sampling_steps
-                    current_images = response['data']['current_images']
-                    if len(current_images) > processed_image_count:
-                        processed_image_count = len(current_images)
-                        state.nextjob()
-                    last_image_string = next((item for item in reversed(current_images) if item), None)
-                    if last_image_string:
-                        state.assign_current_image(decode_image(last_image_string))
-
-                elif response['data']['status'] == 2:
-                    state.textinfo = "Downloading images..."
-                    images = download_images(response['data']['imgs'])
-                    info = json.loads(response['data']['info'])
-                    return Processed(
-                        p=p, 
-                        images_list=images,
-                        seed=info['seed'],
-                        subseed=info['subseed'],
-                        all_seeds=info['all_seeds'],
-                        all_subseeds=info['all_subseeds'],
-                        all_prompts=info['all_prompts'],
-                        all_negative_prompts=info['all_negative_prompts'],
-                        infotexts=info['infotexts']
-                        )
-                elif response['data']['status'] == 3:
-                    raise GenerateRemoteError(service, 'Generation failed')
-                elif response['data']['status'] == 4:
-                    raise GenerateRemoteError(service, 'Generation timed out')
-
+            if p.enable_hr:
+                payload.update({
+                    "enable_hr": True,
+                    "hr_upscaler": p.hr_upscaler,
+                    "hr_scale": p.hr_scale,
+                    "hr_resize_x": p.hr_resize_x,
+                    "hr_resize_y": p.hr_resize_y
+                })
         elif isinstance(p, StableDiffusionProcessingImg2Img):
-            pass
+            payload.update({
+                "init_images": [encode_image(img) for img in p.init_images],
+                "denoising_strength": p.denoising_strength,
+                "resize_mode": p.resize_mode,
+                "image_cfg_scale": p.image_cfg_scale,
+                "mask_blur": p.mask_blur,
+                "inpainting_fill": p.inpainting_fill,
+                "inpaint_full_res": p.inpaint_full_res,
+                "inpaint_full_res_padding": p.inpaint_full_res_padding,
+                "inpainting_mask_invert": p.inpainting_mask_invert,
+                "initial_noise_multiplier": p.initial_noise_multiplier
+            })
+            if p.image_mask:
+                payload["mask"] = [encode_image(p.image_mask)]
+
+        log.debug(f'RI: payload: {payload}')
+        
+        if isinstance(p, StableDiffusionProcessingTxt2Img):
+            response = request_or_error(service, '/v2/txt2img', headers, method='POST', data=payload)
+        elif isinstance(p, StableDiffusionProcessingImg2Img):
+            response = request_or_error(service, '/v2/img2img', headers, method='POST', data=payload)
+
+        if response['code'] != 0:
+            raise GenerateRemoteError(service, response['msg'])
+        uuid = response['data']['task_id']
+
+        state.sampling_steps = p.steps
+        state.job_count = p.n_iter
+        start = time.time()
+
+        while True:
+            response = request_or_error(service, f'/v2/progress?task_id={uuid}', headers)
+
+            if response['data']['status'] == 1:
+                elapsed = int(time.time() - start)
+                state.sampling_steps = elapsed + response['data']['eta_relative']
+                state.sampling_step = elapsed
+
+                current_images = response['data']['current_images']
+                last_image_string = next((item for item in reversed(current_images) if item), None)
+                if last_image_string:
+                    state.assign_current_image(decode_image(last_image_string))
+
+            elif response['data']['status'] == 2:
+                state.step = state.sampling_steps
+                state.textinfo = "Downloading images..."
+                images = download_images(response['data']['imgs'])
+                info = json.loads(response['data']['info'])
+                return Processed(
+                    p=p, 
+                    images_list=images,
+                    seed=info['seed'],
+                    subseed=info['subseed'],
+                    all_seeds=info['all_seeds'],
+                    all_subseeds=info['all_subseeds'],
+                    all_prompts=info['all_prompts'],
+                    all_negative_prompts=info['all_negative_prompts'],
+                    infotexts=info['infotexts']
+                    )
+            elif response['data']['status'] == 3:
+                raise GenerateRemoteError(service, 'Generation failed')
+            elif response['data']['status'] == 4:
+                raise GenerateRemoteError(service, 'Generation timed out')
 
 def save_images_and_add_grid(proc: Processed, p:StableDiffusionProcessing):
     #Copyright NatanJunges https://github.com/natanjunges/stable-diffusion-webui-stable-horde/blob/00248b89bfab7ba465f104324a5d0708ad37341f/scripts/main.py#L345C6-L363C1
@@ -235,7 +280,7 @@ def save_images_and_add_grid(proc: Processed, p:StableDiffusionProcessing):
             modules.images.save_image(img, path=p.outpath_samples, basename="", seed=proc.all_seeds[i], prompt=proc.all_prompts[i], extension=opts.samples_format, info=proc.infotexts[i], p=p)
 
     if (opts.return_grid or opts.grid_save) and not p.do_not_save_grid and len(proc.images) >= 2:
-        grid = modules.images.image_grid(proc.images, math.ceil(math.sqrt(len(proc.images))))
+        grid = modules.images.image_grid(proc.images, rows=math.ceil(math.sqrt(len(proc.images))))
         info = '\n'.join(proc.infotexts)
 
         if opts.return_grid:
