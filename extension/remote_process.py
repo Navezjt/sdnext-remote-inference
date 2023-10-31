@@ -75,9 +75,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         prompt, pos_loras = extract(prompt, r'<lora:(\w+):([\d.]+)>')
         negative_prompt, neg_loras = extract(negative_prompt, r'<lora:(\w+):([\d.]+)>')
         loras = [(i,float(j)) for i,j in pos_loras] + [(i,-float(j)) for i,j in neg_loras]
-        prompt, pos_tis = extract(prompt, r'<ti:(\w+)>')
-        negative_prompt, neg_tis = extract(negative_prompt, r'<ti:(\w+)>')
-        tis = pos_tis+neg_tis
+        tis = re.findall(r'embedding:(\w+)', prompt+negative_prompt)
 
         if len(loras) > 5:
             raise GenerateRemoteError(service, 'Too many loras')
