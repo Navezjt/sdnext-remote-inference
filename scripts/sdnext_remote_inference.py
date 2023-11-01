@@ -2,16 +2,16 @@ import modules.sd_models
 import modules.ui_extra_networks_checkpoints
 import ui_extra_networks_lora
 import networks
-
 import modules.textual_inversion.textual_inversion
 import modules.ui_extra_networks_textual_inversion
-
 import modules.processing
+import modules.scripts_postprocessing
 
 from extension.utils_remote import make_conditional_hook
 import extension.remote_extra_networks
 import extension.remote_process
 import extension.remote_balance
+import extension.remote_postprocess
 
 import modules.script_callbacks
 import modules.shared
@@ -35,6 +35,7 @@ def on_app_started(blocks, _app):
     # GENERATION
     modules.sd_models.reload_model_weights = make_conditional_hook(modules.sd_models.reload_model_weights, extension.remote_process.fake_reload_model_weights)
     modules.processing.process_images = make_conditional_hook(modules.processing.process_images, extension.remote_process.process_images)
+    modules.scripts_postprocessing.ScriptPostprocessingRunner.run = make_conditional_hook(modules.scripts_postprocessing.ScriptPostprocessingRunner.run, extension.remote_postprocess.remote_run) 
 
     # UI
     with blocks:

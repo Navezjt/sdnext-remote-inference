@@ -11,7 +11,7 @@ from multiprocessing.pool import ThreadPool
 import modules.shared
 from modules.shared import log
 
-ModelType = Enum('ModelType', ['CHECKPOINT','LORA','TEXTUALINVERSION','CONTROLNET','VAE','UPSCALER','LYCORIS','HYPERNET'])
+ModelType = Enum('ModelType', ['CHECKPOINT','LORA','EMBEDDING','HYPERNET','VAE','SAMPLER','UPSCALER','CONTROLNET'])
 RemoteService = Enum('RemoteService', ['Local', 'SDNext', 'StableHorde', 'OmniInfer'])
 default_endpoints = {
     RemoteService.SDNext: 'http://127.0.0.1:7860',
@@ -132,6 +132,14 @@ stable_horde_samplers =  {
     "DPM solver": "dpmsolver",
     "DPM++ SDE": "k_dpmpp_sde",
     "DDIM": "DDIM",
-    }
+}
 
 stable_horde_controlnets = ["canny", "hed", "depth", "normal", "openpose", "seg", "scribble", "fakescribbles", "hough"]
+
+stable_horde_upscalers = {
+    "RealESRGAN 2x+": "RealESRGAN_x2plus",
+    "RealESRGAN 4x+": "RealESRGAN_x4plus",
+    "RealESRGAN 4x+ Anime6B": "RealESRGAN_x4plus_anime_6B",
+    "ESRGAN 4x NMKD Siax": "NMKD_Siax",
+    "ESRGAN 4x Ultrasharp": "4x_AnimeSharp"
+}

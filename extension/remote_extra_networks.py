@@ -38,7 +38,7 @@ def get_remote(model_type: ModelType, service: RemoteService):
             for model in filter(lambda model: model['type'] == 'lora', model_list):
                 RemoteLora(model['name'], sdnext_preview_url(model['preview']), filename=model['filename'])
 
-        elif model_type == ModelType.TEXTUALINVERSION:
+        elif model_type == ModelType.EMBEDDING:
             for model in filter(lambda model: model['type'] == 'embedding', model_list):
                 RemoteEmbedding(model['name'], sdnext_preview_url(model['preview']), filename=model['filename'])
 
@@ -59,12 +59,12 @@ def get_remote(model_type: ModelType, service: RemoteService):
     
         elif model_type == ModelType.LORA:
             pass
-        elif model_type == ModelType.TEXTUALINVERSION:
+        elif model_type == ModelType.EMBEDDING:
             pass
 
     #================================== OmniInfer ==================================
     elif service == RemoteService.OmniInfer:
-        if not model_type in [ModelType.CHECKPOINT, ModelType.LORA, ModelType.TEXTUALINVERSION]:
+        if not model_type in [ModelType.CHECKPOINT, ModelType.LORA, ModelType.EMBEDDING]:
             return
 
         model_list = get_or_error_with_cache(service, "/v2/models")
@@ -88,7 +88,7 @@ def get_remote(model_type: ModelType, service: RemoteService):
                 tags = {tag:0 for tag in model['civitai_tags'].split(',')} if 'civitai_tags' in model else {}
                 RemoteLora(model['name'], safeget(model, 'civitai_images', 0, 'url'), tags=tags, filename=model['sd_name'])
 
-        elif model_type == ModelType.TEXTUALINVERSION:
+        elif model_type == ModelType.EMBEDDING:
             for model in filter(lambda model: model['type'] == 'textualinversion', model_list):
                 tags = {tag:0 for tag in model['civitai_tags'].split(',')} if 'civitai_tags' in model else {}
                 RemoteEmbedding(model['name'], safeget(model, 'civitai_images', 0, 'url'), tags=tags, filename=model['sd_name'])
@@ -231,9 +231,9 @@ def list_remote_embeddings(self, force_reload=False):
     self.expected_shape = None
     self.embedding_dirs.clear()
 
-    log_debug_model_list(ModelType.TEXTUALINVERSION, api_service)
-    get_remote(ModelType.TEXTUALINVERSION, api_service)
-    log_info_model_count(ModelType.TEXTUALINVERSION, api_service, len(self.word_embeddings))
+    log_debug_model_list(ModelType.EMBEDDING, api_service)
+    get_remote(ModelType.EMBEDDING, api_service)
+    log_info_model_count(ModelType.EMBEDDING, api_service, len(self.word_embeddings))
 
 def extra_networks_textual_inversions_list_items(self):
     for name, embedding in modules.sd_hijack.model_hijack.embedding_db.word_embeddings.items():
