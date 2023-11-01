@@ -133,3 +133,5 @@ stable_horde_samplers =  {
     "DPM++ SDE": "k_dpmpp_sde",
     "DDIM": "DDIM",
     }
+
+stable_horde_controlnets = ["canny", "hed", "depth", "normal", "openpose", "seg", "scribble", "fakescribbles", "hough"]

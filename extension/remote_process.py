@@ -3,8 +3,9 @@ from modules.processing import StableDiffusionProcessing, StableDiffusionProcess
 import modules.shared
 from modules.shared import state, log, opts
 import modules.images
+from scripts.controlnet_ui.controlnet_ui_group import UiControlNetUnit
 
-from extension.utils_remote import encode_image, decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_samplers, stable_horde_client
+from extension.utils_remote import encode_image, decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_samplers, stable_horde_controlnets, stable_horde_client
 
 import json
 import time
@@ -35,6 +36,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
     p.subseed = int(modules.processing.get_fixed_seed(p.subseed))
     p.prompt = modules.shared.prompt_styles.apply_styles_to_prompt(p.prompt, p.styles)
     p.negative_prompt = modules.shared.prompt_styles.apply_negative_styles_to_prompt(p.negative_prompt, p.styles)
+    control_units = [u for u in p.script_args if isinstance(u, UiControlNetUnit) and u.enabled]
 
     #================================== SD.Next ==================================
     if service == RemoteService.SDNext:
@@ -66,20 +68,25 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
     # Copyright NatanJunges https://github.com/natanjunges/stable-diffusion-webui-stable-horde/blob/00248b89bfab7ba465f104324a5d0708ad37341f/scripts/main.py#L376
         n = p.n_iter*p.batch_size
 
+        if isinstance(p, StableDiffusionProcessingTxt2Img) and len(control_units) > 1:
+            raise GenerateRemoteError(service, 'Max 1 controlnet')
+        elif isinstance(p, StableDiffusionProcessingImg2Img) and len(control_units) > 0:
+            raise GenerateRemoteError(service, 'No controlnet for img2img')
+
         def extract(instr, pattern):
             return re.sub(pattern, '', instr), re.findall(pattern, instr)
         
-        prompt = p.prompt
-        negative_prompt = p.negative_prompt
-
-        prompt, pos_loras = extract(prompt, r'<lora:(\w+):([\d.]+)>')
-        negative_prompt, neg_loras = extract(negative_prompt, r'<lora:(\w+):([\d.]+)>')
+        prompt, pos_loras = extract(p.prompt, r'<lora:(\w+):([\d.]+)>')
+        negative_prompt, neg_loras = extract(p.negative_prompt, r'<lora:(\w+):([\d.]+)>')
         loras = [(i,float(j)) for i,j in pos_loras] + [(i,-float(j)) for i,j in neg_loras]
         tis = re.findall(r'embedding:(\w+)', prompt+negative_prompt)
 
         if len(loras) > 5:
-            raise GenerateRemoteError(service, 'Too many loras')
-
+            raise GenerateRemoteError(service, 'Max 5 loras')
+        
+        sampler_name = stable_horde_samplers.get(p.sampler_name, None)
+        if not sampler_name:
+            raise GenerateRemoteError(service, f'Sampler should be in {list(stable_horde_samplers.keys)}')
 
         headers = {
             "apikey": get_api_key(service),
@@ -89,7 +96,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         payload = {
             "prompt": f"{prompt}###{negative_prompt}" if negative_prompt else prompt,
             "params": {
-                "sampler_name": stable_horde_samplers.get(p.sampler_name, "k_euler_a"),
+                "sampler_name": sampler_name,
                 "karras": opts.schedulers_sigma == 'karras',
                 "cfg_scale": p.cfg_scale,
                 "clip_skip": p.clip_skip,
@@ -99,6 +106,9 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
                 "width": p.width,
                 "steps": p.steps,
                 "n": n,
+                "tiling": p.tiling,
+                "hires_fix": p.enable_hr,
+                "denoising_strength": p.denoising_strength,
                 "loras": [{"name": i, "model": j} for i,j in loras],
                 "tis": [{"name": i} for i in tis]
             },
@@ -113,29 +123,29 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         }
 
         if isinstance(p, StableDiffusionProcessingTxt2Img):
-            payload["params"]["tiling"] = p.tiling
-            payload["params"]["hires_fix"] = p.enable_hr
-            if p.enable_hr:
-                payload["params"]["denoising_strength"] = p.denoising_strength
+            if control_units: 
+                unit = control_units[0]
+                control_type = next((i for i in unit.module.split('_') if i in stable_horde_controlnets), None)
+                if not control_type:
+                    raise GenerateRemoteError(service, f'ControlNet type should be in {stable_horde_controlnets}')
+                payload["params"]["control_type"] = control_type
+                payload["params"]["control_strength"] = unit.weight
+                if not p.enable_hr:
+                    payload["params"]["denoising_strength"] = unit.weight
+                payload["source_image"] = encode_image(Image.fromarray(unit.image['image']))
         elif isinstance(p, StableDiffusionProcessingImg2Img):
             payload["source_image"] = encode_image(p.init_images[0])
-            payload["params"]["denoising_strength"] = p.denoising_strength
-
             if p.image_mask:
                 payload["source_processing"] = "inpainting"
                 payload["source_mask"] = encode_image(p.image_mask)
-        else:
-            return
 
         log.debug(f'RI: payload: {payload}')
-        
-        # todo
-        # controlnet, postprocessing, upscale
 
         response = request_or_error(service, '/v2/generate/async', headers, method='POST', data=payload)
         uuid = response['id']
         
         state.sampling_steps = 100
+        state.sampling_step = 0
         state.job_count = n
         start = time.time()
 
@@ -233,6 +243,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         uuid = response['data']['task_id']
 
         state.sampling_steps = p.steps
+        state.sampling_step = 0
         state.job_count = p.n_iter
         start = time.time()
 
