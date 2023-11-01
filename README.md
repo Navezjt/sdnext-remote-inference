@@ -22,9 +22,9 @@ Aimed to be universal for all providers, feel free to request other providers.
 | From Image                  |      ✅     |      ✅      |     🆗+    |
 | Inpainting                  |      🆗+    |      ✅      |     🆗+    |
 | Second pass (hires)         |      🆗+    |      ✅      |     🆗+    |
-| Second pass (refiner)       |      🆗     |      🆗      |     🆗     |
+| Second pass (refiner)       |      🆗     |      ❌      |     🆗     |
 | Loras and TIs               |      🆗     |      ✅      |     ✅     |
-| ControlNet                  |      🆗     |      🆗      |     🆗     |
+| ControlNet                  |      🆗     |      ✅      |     🆗     |
 | Upscale & postprocess       |      🆗     |      🆗      |     🆗     |
 | ***User***                  |             |              |            |
 | Balance (credits/kudos)     |      ❌     |      ✅      |     ✅     |
