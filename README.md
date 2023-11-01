@@ -27,9 +27,9 @@ Aimed to be universal for all providers, feel free to request other providers.
 | ControlNet                  |      🆗     |      ✅      |     🆗     |
 | Upscale & postprocess       |      🆗     |      🆗      |     🆗     |
 | ***User***                  |             |              |            |
-| Balance (credits/kudos)     |      ❌     |      ✅      |     ✅     |
-| Generation cost estimation  |      ❌     |      🆗      |     🆗     |
-| Image rating                |      ❌     |      🆗      |     ❌     |
+| Balance (credits/kudos)     |      ⭕     |      ✅      |     ✅     |
+| Generation cost estimation  |      ⭕     |      🆗      |     🆗     |
+| Image rating                |      ⭕     |      🆗      |     ❌     |
 
 - ✅ functional
 - 🆗+ work in progress
