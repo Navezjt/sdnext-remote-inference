@@ -1,26 +1,35 @@
+import gradio as gr
+
 import modules.sd_models
 import modules.ui_extra_networks_checkpoints
-import ui_extra_networks_lora
-import networks
 import modules.textual_inversion.textual_inversion
 import modules.ui_extra_networks_textual_inversion
 import modules.processing
 import modules.scripts_postprocessing
+import modules.scripts
+import modules.script_callbacks
+import modules.shared
+from modules.shared import OptionInfo, options_section 
 
-from extension.utils_remote import make_conditional_hook
+from extension.utils_remote import make_conditional_hook, RemoteService, default_endpoints, endpoint_setting_names, apikey_setting_names, import_script_data
 import extension.remote_extra_networks
 import extension.remote_process
 import extension.remote_balance
 import extension.remote_postprocess
 
-import modules.script_callbacks
-import modules.shared
-from modules.shared import OptionInfo, options_section
-import gradio as gr       
-
-from extension.utils_remote import RemoteService, default_endpoints, endpoint_setting_names, apikey_setting_names
+import ui_extra_networks_lora
+import networks
 
 def on_app_started(blocks, _app):
+    # SCRIPT IMPORTS
+    import_script_data({
+        'controlnet': 'extensions-builtin/sd-webui-controlnet/scripts/controlnet.py',
+        'rembg': 'extensions-builtin/stable-diffusion-webui-rembg/scripts/postprocessing_rembg.py',
+        'codeformer': 'scripts/postprocessing_codeformer.py',
+        'gfpgan': 'scripts/postprocessing_gfpgan.py',
+        'upscale': 'scripts/postprocessing_upscale.py'
+    })
+
     # EXTRA NETWORKS
     modules.sd_models.list_models = make_conditional_hook(modules.sd_models.list_models, extension.remote_extra_networks.list_remote_models)
     modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items = make_conditional_hook(modules.ui_extra_networks_checkpoints.ExtraNetworksPageCheckpoints.list_items, extension.remote_extra_networks.extra_networks_checkpoints_list_items)

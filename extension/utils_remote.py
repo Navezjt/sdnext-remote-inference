@@ -7,9 +7,10 @@ import base64
 import io
 from PIL import Image
 from multiprocessing.pool import ThreadPool
+import itertools
 
 import modules.shared
-from modules.shared import log
+import modules.scripts
 
 ModelType = Enum('ModelType', ['CHECKPOINT','LORA','EMBEDDING','HYPERNET','VAE','SAMPLER','UPSCALER','CONTROLNET'])
 RemoteService = Enum('RemoteService', ['Local', 'SDNext', 'StableHorde', 'OmniInfer'])
@@ -54,17 +55,63 @@ def make_conditional_hook(func, replace_func):
             return replace_func(*args, **kwargs)
     return wrap
 
-class RemoteInferenceError(Exception):
+imported_scripts = {}
+def import_script_data(dict):
+    def get_script_data(path):
+        script = next((data for data in itertools.chain(modules.scripts.scripts_data, modules.scripts.postprocessing_scripts_data) if data.path.endswith(path)), None)
+        if not script:
+            raise ImportError(f"Script module not found: {path}")
+        return script
+
+    imported_scripts.update({name: get_script_data(path) for name,path in dict.items()})
+
+class RemoteInferenceAPIError(Exception):
     def __init__(self, service, error):
         super().__init__(f'RI: error with {service} api call: {error}')
 
+class RemoteInferenceProcessError(Exception):
+    def __init__(self, service, error):
+        super().__init__(f'RI: error with process task for {service}: {error}')
+
+class RemoteInferencePostprocessError(Exception):
+    def __init__(self, service, error):
+        super().__init__(f'RI: error with postprocess task for {service}: {error}')
+
+def get_payload_str(payload):
+    def truncate(value, max_length=50):
+        if isinstance(value, str):
+            return value[:max_length]+'...' if len(value) > max_length else value
+        elif isinstance(value, list):
+            return [truncate(val) for val in value]
+        elif isinstance(value, dict):
+            return {key: truncate(val) for key,val in value.items()}
+        else:
+            return value
+    return truncate(payload)
+
+def clean_payload_dict(payload):
+    def clean(value):
+        if isinstance(value, list):
+            return [clean(val) for val in value if val is not None]
+        elif isinstance(value, dict):
+            return {key: clean(val) for key, val in value.items() if val is not None}
+        else:
+            return value
+    return clean(payload)
+
 def request_or_error(service, path, headers=None, method='GET', data=None):
     try:
+        data = clean_payload_dict(data)
+        log = method != 'GET'
+        if log:
+            modules.shared.log.debug(f'RI: payload: {get_payload_str(data)}')
         response = requests.request(method=method, url=get_remote_endpoint(service)+path, headers=headers, json=data)
+        if log:
+            modules.shared.log.debug(f'RI: response: {get_payload_str(json.loads(response.content))}')
     except Exception as e:
-        raise RemoteInferenceError(service, e)
+        raise RemoteInferenceAPIError(service, e)
     if response.status_code not in (200, 202):
-        raise RemoteInferenceError(service, f"{response.status_code}: {response.content}")
+        raise RemoteInferenceAPIError(service, f"{response.status_code}: {response.content}")
     
     return json.loads(response.content)
 
@@ -91,7 +138,7 @@ def download_image(img_url):
             with io.BytesIO(response.content) as fp:
                 return Image.open(fp).copy()
         except (requests.RequestException, Image.UnidentifiedImageError):
-            log.warning(f"RI: Failed to download {img_url}, retrying...")
+            modules.shared.log.warning(f"RI: Failed to download {img_url}, retrying...")
             attempts -= 1
     return None
 

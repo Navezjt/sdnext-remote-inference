@@ -1,13 +1,13 @@
-import requests
 import json
 import html
+import requests
 
 import modules.shared
 import modules.sd_models
 import modules.textual_inversion
 import modules.sd_hijack
 import modules.ui_extra_networks
-log = modules.shared.log
+from modules.shared import log
 import network
 import networks
 

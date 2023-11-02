@@ -1,17 +1,16 @@
-import modules.processing
-from modules.processing import StableDiffusionProcessing, StableDiffusionProcessingTxt2Img, StableDiffusionProcessingImg2Img, Processed
-import modules.shared
-from modules.shared import state, log, opts
-import modules.images
-from scripts.controlnet_ui.controlnet_ui_group import UiControlNetUnit
-
-from extension.utils_remote import encode_image, decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_samplers, stable_horde_controlnets, stable_horde_client
-
 import json
 import time
 import math
 from PIL import Image
 import re
+
+import modules.processing
+from modules.processing import StableDiffusionProcessing, StableDiffusionProcessingTxt2Img, StableDiffusionProcessingImg2Img, Processed
+import modules.shared
+from modules.shared import state, log, opts
+import modules.images
+
+from extension.utils_remote import encode_image, decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_samplers, stable_horde_controlnets, stable_horde_client, RemoteInferenceProcessError, imported_scripts
 
 class RemoteModel:
     def __init__(self, checkpoint_info):
@@ -27,20 +26,20 @@ def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='mo
     except StopIteration:
         return None
 
-class GenerateRemoteError(Exception):
-    def __init__(self, service, error):
-        super().__init__(f'RI: Unable to remotely infer task for {service}: {error}')
-
 def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Processed:
     p.seed = int(modules.processing.get_fixed_seed(p.seed))
     p.subseed = int(modules.processing.get_fixed_seed(p.subseed))
     p.prompt = modules.shared.prompt_styles.apply_styles_to_prompt(p.prompt, p.styles)
     p.negative_prompt = modules.shared.prompt_styles.apply_negative_styles_to_prompt(p.negative_prompt, p.styles)
-    control_units = [u for u in p.script_args if isinstance(u, UiControlNetUnit) and u.enabled]
+
+    txt2img = isinstance(p, StableDiffusionProcessingTxt2Img)
+    img2img = isinstance(p, StableDiffusionProcessingImg2Img)
+    if not txt2img and not img2img:
+        raise TypeError("Neither txt2img nor img2img")
+    control_units = [u for u in p.script_args if isinstance(u, imported_scripts['controlnet'].module.UiControlNetUnit) and u.enabled]
 
     #================================== SD.Next ==================================
     if service == RemoteService.SDNext:
-        data = vars(p)
         txt2img_keys = ["enable_hr", "denoising_strength", "firstphase_width", "firstphase_height", "hr_scale", "hr_force", "hr_upscaler", "hr_second_pass_steps", "hr_resize_x", "hr_resize_y", "refiner_steps", "refiner_start", "refiner_prompt", "refiner_negative", "prompt", "styles", "seed", "subseed", "subseed_strength", "seed_resize_from_h", "seed_resize_from_w", "sampler_name", "latent_sampler", "batch_size", "n_iter", "steps", "cfg_scale", "image_cfg_scale", "clip_skip", "width", "height", "full_quality", "restore_faces", "tiling", "do_not_save_samples", "do_not_save_grid", "negative_prompt", "eta", "diffusers_guidance_rescale", "override_settings", "override_settings_restore_afterwards", "sampler_index", "script_name", "send_images", "save_images", "alwayson_scripts"] #"script_args", "sampler_index"
         img2img_keys = ["init_images", "resize_mode", "denoising_strength", "image_cfg_scale", "mask", "mask_blur", "inpainting_fill", "inpaint_full_res", "inpaint_full_res_padding", "inpainting_mask_invert", "initial_noise_multiplier", "refiner_steps", "refiner_start", "refiner_prompt", "refiner_negative", "prompt", "styles", "seed", "subseed", "subseed_strength", "seed_resize_from_h", "seed_resize_from_w", "sampler_name", "latent_sampler", "batch_size", "n_iter", "steps", "cfg_scale", "clip_skip", "width", "height", "full_quality", "restore_faces", "tiling", "do_not_save_samples", "do_not_save_grid", "negative_prompt", "eta", "diffusers_guidance_rescale", "override_settings", "override_settings_restore_afterwards", "sampler_index", "include_init_images", "script_name", "send_images", "save_images", "alwayson_scripts"] #"script_args", "sampler_index"
         processed_keys = ["seed", "info", "subseed", "all_prompts", "all_negative_prompts", "all_seeds", "all_subseeds", "index_of_first_image", "infotexts", "comments"]
@@ -48,17 +47,13 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         request_or_error(service, '/sdapi/v1/options', method='POST', data={'sd_model_checkpoint': opts.sd_model_checkpoint})
         request_or_error(service, '/sdapi/v1/reload-checkpoint', method='POST')
 
-        if isinstance(p, StableDiffusionProcessingTxt2Img): 
-            data = {key: data[key] for key in txt2img_keys if key in data.keys()}
-            log.debug(data)
-            response = request_or_error(service, '/sdapi/v1/txt2img', method='POST', data=data)
-        elif isinstance(p, StableDiffusionProcessingImg2Img):
-            data = {key: data[key] for key in img2img_keys if key in data.keys() and data[key] is not None}
-            log.debug(data)
-            data['init_images'] = [encode_image(img) for img in data['init_images']]
-            response = request_or_error(service, '/sdapi/v1/img2img', method='POST', data=data)
+        data = vars(p)
+        payload = {key: data[key] for key in (txt2img_keys if txt2img else img2img_keys) if key in data.keys() and data[key] is not None}
+        if img2img:
+            payload['init_images'] = [encode_image(img) for img in payload['init_images']]
 
-        log.debug(f"RI: response: {response}")
+        response = request_or_error(service, ('/sdapi/v1/txt2img' if txt2img else '/sdapi/v1/img2img'), method='POST', data=payload)
+
         info = json.loads(response['info'])
         info = {key: info[key] for key in processed_keys if key in info.keys()}
         return Processed(p=p, images_list=[decode_image(img) for img in response['images']], **info)
@@ -68,10 +63,10 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
     # Copyright NatanJunges https://github.com/natanjunges/stable-diffusion-webui-stable-horde/blob/00248b89bfab7ba465f104324a5d0708ad37341f/scripts/main.py#L376
         n = p.n_iter*p.batch_size
 
-        if isinstance(p, StableDiffusionProcessingTxt2Img) and len(control_units) > 1:
-            raise GenerateRemoteError(service, 'Max 1 controlnet')
-        elif isinstance(p, StableDiffusionProcessingImg2Img) and len(control_units) > 0:
-            raise GenerateRemoteError(service, 'No controlnet for img2img')
+        if txt2img and len(control_units) > 1:
+            raise RemoteInferenceProcessError(service, 'Max 1 controlnet')
+        elif img2img and len(control_units) > 0:
+            raise RemoteInferenceProcessError(service, 'No controlnet for img2img')
 
         def extract(instr, pattern):
             return re.sub(pattern, '', instr), re.findall(pattern, instr)
@@ -82,11 +77,11 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         tis = re.findall(r'embedding:(\w+)', prompt+negative_prompt)
 
         if len(loras) > 5:
-            raise GenerateRemoteError(service, 'Max 5 loras')
+            raise RemoteInferenceProcessError(service, 'Max 5 loras')
         
         sampler_name = stable_horde_samplers.get(p.sampler_name, None)
         if not sampler_name:
-            raise GenerateRemoteError(service, f'Sampler should be in {list(stable_horde_samplers.keys)}')
+            raise RemoteInferenceProcessError(service, f'Sampler should be in {list(stable_horde_samplers.keys())}')
 
         headers = {
             "apikey": get_api_key(service),
@@ -122,24 +117,22 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
             "shared": opts.horde_share_laion
         }
 
-        if isinstance(p, StableDiffusionProcessingTxt2Img):
+        if txt2img:
             if control_units: 
                 unit = control_units[0]
                 control_type = next((i for i in unit.module.split('_') if i in stable_horde_controlnets), None)
                 if not control_type:
-                    raise GenerateRemoteError(service, f'ControlNet type should be in {stable_horde_controlnets}')
+                    raise RemoteInferenceProcessError(service, f'ControlNet type should be in {stable_horde_controlnets}')
                 payload["params"]["control_type"] = control_type
                 payload["params"]["control_strength"] = unit.weight
                 if not p.enable_hr:
                     payload["params"]["denoising_strength"] = unit.weight
                 payload["source_image"] = encode_image(Image.fromarray(unit.image['image']))
-        elif isinstance(p, StableDiffusionProcessingImg2Img):
+        elif img2img:
             payload["source_image"] = encode_image(p.init_images[0])
             if p.image_mask:
                 payload["source_processing"] = "inpainting"
                 payload["source_mask"] = encode_image(p.image_mask)
-
-        log.debug(f'RI: payload: {payload}')
 
         response = request_or_error(service, '/v2/generate/async', headers, method='POST', data=payload)
         uuid = response['id']
@@ -158,6 +151,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
             
             if status['done']:
                 state.sampling_step = state.sampling_steps
+                state.textinfo = "Downloading images..."
 
                 response = request_or_error(service, f'/v2/generate/status/{uuid}', headers)
 
@@ -180,9 +174,9 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
                     infotexts=infotexts
                     )
             elif status['faulted']:
-                raise GenerateRemoteError(service, 'Generation failed')
+                raise RemoteInferenceProcessError(service, 'Generation failed')
             elif not status['is_possible']:
-                raise GenerateRemoteError(service, 'Generation not possible with current worker pool')
+                raise RemoteInferenceProcessError(service, 'Generation not possible with current worker pool')
 
 
     #================================== OmniInfer ==================================
@@ -206,7 +200,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
             "seed": p.seed
         }
 
-        if isinstance(p, StableDiffusionProcessingTxt2Img):
+        if txt2img:
             if p.enable_hr:
                 payload.update({
                     "enable_hr": True,
@@ -215,7 +209,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
                     "hr_resize_x": p.hr_resize_x,
                     "hr_resize_y": p.hr_resize_y
                 })
-        elif isinstance(p, StableDiffusionProcessingImg2Img):
+        elif img2img:
             payload.update({
                 "init_images": [encode_image(img) for img in p.init_images],
                 "denoising_strength": p.denoising_strength,
@@ -231,15 +225,10 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
             if p.image_mask:
                 payload["mask"] = [encode_image(p.image_mask)]
 
-        log.debug(f'RI: payload: {payload}')
-        
-        if isinstance(p, StableDiffusionProcessingTxt2Img):
-            response = request_or_error(service, '/v2/txt2img', headers, method='POST', data=payload)
-        elif isinstance(p, StableDiffusionProcessingImg2Img):
-            response = request_or_error(service, '/v2/img2img', headers, method='POST', data=payload)
+        response = request_or_error(service, ('/v2/txt2img' if txt2img else '/v2/img2img'), headers, method='POST', data=payload)
 
         if response['code'] != 0:
-            raise GenerateRemoteError(service, response['msg'])
+            raise RemoteInferenceProcessError(service, response['msg'])
         uuid = response['data']['task_id']
 
         state.sampling_steps = p.steps
@@ -277,12 +266,12 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
                     infotexts=info['infotexts']
                     )
             elif response['data']['status'] == 3:
-                raise GenerateRemoteError(service, 'Generation failed')
+                raise RemoteInferenceProcessError(service, 'Generation failed')
             elif response['data']['status'] == 4:
-                raise GenerateRemoteError(service, 'Generation timed out')
+                raise RemoteInferenceProcessError(service, 'Generation timed out')
 
 def save_images_and_add_grid(proc: Processed, p:StableDiffusionProcessing):
-    #Copyright NatanJunges https://github.com/natanjunges/stable-diffusion-webui-stable-horde/blob/00248b89bfab7ba465f104324a5d0708ad37341f/scripts/main.py#L345C6-L363C1
+    #Copyright Automatic1111 https://github.com/AUTOMATIC1111/stable-diffusion-webui/blob/00dab8f10defbbda579a1bc89c8d4e972c58a20d/modules/processing.py#L691C7-L706C1
 
     if opts.save and not p.do_not_save_samples:
         for i,img in enumerate(proc.images):
