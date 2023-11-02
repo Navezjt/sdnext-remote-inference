@@ -25,7 +25,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 | Second pass (refiner)       |      🆗     |      ❌      |     🆗     |
 | Loras and TIs               |      🆗     |      ✅      |     ✅     |
 | ControlNet                  |      🆗     |      ✅      |     🆗     |
-| Upscale & postprocess       |      🆗     |      🆗+     |     🆗     |
+| Upscale & postprocess       |      🆗     |      ✅      |     🆗     |
 | ***User***                  |             |              |            |
 | Balance (credits/kudos)     |      ⭕     |      ✅      |     ✅     |
 | Generation cost estimation  |      ⭕     |      🆗      |     🆗     |
