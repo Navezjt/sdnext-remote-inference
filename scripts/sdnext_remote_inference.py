@@ -16,6 +16,7 @@ import extension.remote_extra_networks
 import extension.remote_process
 import extension.remote_balance
 import extension.remote_postprocess
+import extension.ui_populate
 
 import ui_extra_networks_lora
 import networks
@@ -48,9 +49,13 @@ def on_app_started(blocks, _app):
 
     # UI
     with blocks:
-        gr.HTML(value=extension.remote_balance.get_remote_balance_html, elem_id='remote_inference_balance', every=10.0)
+        balance = gr.HTML(value='', elem_id='remote_inference_balance')
+        clicker = gr.Button(value='', visible=False, elem_id='remote_inference_balance_click')
+        clicker.click(extension.remote_balance.remote_balance_gradio_update, inputs=[], outputs=[balance], show_progress='hidden')
 
 modules.script_callbacks.on_app_started(on_app_started)
+modules.script_callbacks.after_process_callback(lambda p: extension.remote_balance.refresh_balance())
+modules.script_callbacks.on_after_component(lambda component, **kwargs: extension.ui_populate.bind_component(component))
 
 # SETTINGS
 def on_ui_settings():

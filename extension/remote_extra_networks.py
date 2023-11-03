@@ -22,7 +22,7 @@ def log_info_model_count(model_type, api_service, count):
 def sdnext_preview_url(url):
     return get_remote_endpoint(RemoteService.SDNext) + url[1:]
 
-def get_remote(model_type: ModelType, service: RemoteService):
+def get_models(model_type: ModelType, service: RemoteService):
     #================================== SD.Next ==================================
     if service == RemoteService.SDNext:
         model_list = get_or_error_with_cache(service, "/sdapi/v1/extra-networks")
@@ -61,6 +61,12 @@ def get_remote(model_type: ModelType, service: RemoteService):
             pass
         elif model_type == ModelType.EMBEDDING:
             pass
+        elif model_type == ModelType.SAMPLER:
+            return ['k_lms', 'k_heun', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a', 'k_dpm_fast', 'k_dpm_adaptive', 'k_dpmpp_2s_a', 'k_dpmpp_2m', 'dpmsolver', 'k_dpmpp_sde', 'DDIM']
+        elif model_type == ModelType.UPSCALER:
+            return ['RealESRGAN_x2plus', 'RealESRGAN_x4plus', 'RealESRGAN_x4plus_anime_6B', 'NMKD_Siax', '4x_AnimeSharp']
+        elif model_type == ModelType.CONTROLNET:
+            return ["canny", "hed", "depth", "normal", "openpose", "seg", "scribble", "fakescribbles", "hough"]
 
     #================================== OmniInfer ==================================
     elif service == RemoteService.OmniInfer:
@@ -128,7 +134,7 @@ def list_remote_models():
     modules.sd_models.checkpoint_aliases.clear()
 
     log_debug_model_list(ModelType.CHECKPOINT, api_service)
-    get_remote(ModelType.CHECKPOINT, api_service)
+    get_models(ModelType.CHECKPOINT, api_service)
     log_info_model_count(ModelType.CHECKPOINT, api_service, len(modules.sd_models.checkpoints_list))
 
 def extra_networks_checkpoints_list_items(self):
@@ -181,7 +187,7 @@ def list_remote_loras():
     networks.forbidden_network_aliases.update({"none": 1, "Addams": 1})
 
     log_debug_model_list(ModelType.LORA, api_service)
-    get_remote(ModelType.LORA, api_service)
+    get_models(ModelType.LORA, api_service)
     log_info_model_count(ModelType.LORA, api_service, len(networks.available_networks))
 
 def extra_networks_loras_list_items(self):
@@ -232,7 +238,7 @@ def list_remote_embeddings(self, force_reload=False):
     self.embedding_dirs.clear()
 
     log_debug_model_list(ModelType.EMBEDDING, api_service)
-    get_remote(ModelType.EMBEDDING, api_service)
+    get_models(ModelType.EMBEDDING, api_service)
     log_info_model_count(ModelType.EMBEDDING, api_service, len(self.word_embeddings))
 
 def extra_networks_textual_inversions_list_items(self):

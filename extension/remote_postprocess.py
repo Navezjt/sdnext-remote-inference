@@ -3,7 +3,7 @@ import time
 from modules import shared
 from modules.scripts_postprocessing import PostprocessedImage
 
-from extension.utils_remote import RemoteInferencePostprocessError, get_current_api_service, RemoteService, stable_horde_upscalers, stable_horde_client, get_api_key, encode_image, get_image, request_or_error, imported_scripts
+from extension.utils_remote import RemoteInferencePostprocessError, get_current_api_service, RemoteService, stable_horde_client, get_api_key, encode_image, get_image, request_or_error, imported_scripts
 
 def remote_run(self, pp: PostprocessedImage, args):
     service = get_current_api_service()
@@ -30,9 +30,7 @@ def remote_run(self, pp: PostprocessedImage, args):
             elif isinstance(script, imported_scripts['upscale'].script_class):
                 if(process_args["upscaler_1_name"] == 'None'):
                     continue
-                form = stable_horde_upscalers.get(process_args["upscaler_1_name"], None)
-                if not form:
-                    raise RemoteInferencePostprocessError(service, f'Upscaler should be in {list(stable_horde_upscalers.keys())}')
+                form = process_args["upscaler_1_name"]
             else:
                 script_type = type(script).split('\'')[1]
                 shared.log.warning(f"RI: {service} unable to do script of type {script_type}")

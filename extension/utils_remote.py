@@ -128,6 +128,10 @@ def get_or_error_with_cache(service, path, headers=None, cache_time=None):
     cache[cache_key] = (result, time.time())
     return result
 
+def clear_cache(service, path):
+    global cache
+    cache.pop((service, path))
+
 def download_image(img_url):
     # Copyright OmniInfer
     attempts = 5
@@ -165,28 +169,4 @@ def get_image(img):
     
 stable_horde_client = "SD.Next Remote Inference:rolling:QuantumSoul"
 
-stable_horde_samplers =  {
-    "LMS": "k_lms",
-    "Heun": "k_heun",
-    "Euler": "k_euler",
-    "Euler a": "k_euler_a",
-    "DPM2": "k_dpm_2",
-    "DPM2 a": "k_dpm_2_a",
-    "DPM fast": "k_dpm_fast",
-    "DPM adaptive": "k_dpm_adaptive",
-    "DPM++ 2S a": "k_dpmpp_2s_a",
-    "DPM++ 2M": "k_dpmpp_2m",
-    "DPM solver": "dpmsolver",
-    "DPM++ SDE": "k_dpmpp_sde",
-    "DDIM": "DDIM",
-}
-
 stable_horde_controlnets = ["canny", "hed", "depth", "normal", "openpose", "seg", "scribble", "fakescribbles", "hough"]
-
-stable_horde_upscalers = {
-    "RealESRGAN 2x+": "RealESRGAN_x2plus",
-    "RealESRGAN 4x+": "RealESRGAN_x4plus",
-    "RealESRGAN 4x+ Anime6B": "RealESRGAN_x4plus_anime_6B",
-    "ESRGAN 4x NMKD Siax": "NMKD_Siax",
-    "ESRGAN 4x Ultrasharp": "4x_AnimeSharp"
-}
