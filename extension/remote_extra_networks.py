@@ -11,7 +11,7 @@ from modules.shared import log
 import network
 import networks
 
-from extension.utils_remote import ModelType, RemoteService, get_current_api_service, get_remote_endpoint, safeget, get_or_error_with_cache
+from extension.utils_remote import ModelType, RemoteService, get_current_api_service, get_remote_endpoint, safeget, get_or_error_with_cache, stable_horde_samplers
 
 def log_debug_model_list(model_type, api_service):
     log.debug(f'RI: Listing {model_type.name.lower()}s from {api_service}')
@@ -62,7 +62,7 @@ def get_models(model_type: ModelType, service: RemoteService):
         elif model_type == ModelType.EMBEDDING:
             pass
         elif model_type == ModelType.SAMPLER:
-            return ['k_lms', 'k_heun', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a', 'k_dpm_fast', 'k_dpm_adaptive', 'k_dpmpp_2s_a', 'k_dpmpp_2m', 'dpmsolver', 'k_dpmpp_sde', 'DDIM']
+            return list(stable_horde_samplers.keys())
         elif model_type == ModelType.UPSCALER:
             return ['RealESRGAN_x2plus', 'RealESRGAN_x4plus', 'RealESRGAN_x4plus_anime_6B', 'NMKD_Siax', '4x_AnimeSharp']
         elif model_type == ModelType.CONTROLNET:

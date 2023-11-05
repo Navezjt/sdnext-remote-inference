@@ -10,7 +10,7 @@ import modules.shared
 from modules.shared import state, log, opts
 import modules.images
 
-from extension.utils_remote import encode_image, decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_controlnets, stable_horde_client, RemoteInferenceProcessError, imported_scripts
+from extension.utils_remote import encode_image, decode_image, download_images, get_current_api_service, get_image, request_or_error, RemoteService, get_api_key, stable_horde_controlnets, stable_horde_client, RemoteInferenceProcessError, imported_scripts, stable_horde_samplers
 
 class RemoteModel:
     def __init__(self, checkpoint_info):
@@ -87,7 +87,7 @@ def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Pro
         payload = {
             "prompt": f"{prompt}###{negative_prompt}" if negative_prompt else prompt,
             "params": {
-                "sampler_name": p.sampler_name,
+                "sampler_name": stable_horde_samplers[p.sampler_name],
                 "karras": opts.schedulers_sigma == 'karras',
                 "cfg_scale": p.cfg_scale,
                 "clip_skip": p.clip_skip,

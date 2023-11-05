@@ -46,9 +46,12 @@ def change_model_dropdowns(setting_remote_inference_service_value):
     service = RemoteService[setting_remote_inference_service_value]
 
     if service == RemoteService.StableHorde:
-        sampler = gr.Dropdown.update(choices=get_models(ModelType.SAMPLER, service))
-        upscaler = gr.Dropdown.update(choices=get_models(ModelType.UPSCALER, service))
-        return (sampler, sampler, upscaler)
+        samplers = get_models(ModelType.SAMPLER, service)
+        upscalers = get_models(ModelType.UPSCALER, service)
+
+        sampler_update = gr.Dropdown.update(choices=samplers, value=samplers[0])
+        upscaler_update = gr.Dropdown.update(choices=upscalers, value=upscalers[0])
+        return (sampler_update, sampler_update, upscaler_update)
     
     return uibindings.back_to_default([uibindings.txt2img_sampling, uibindings.img2img_sampling, uibindings.extras_upscaler_1])
     

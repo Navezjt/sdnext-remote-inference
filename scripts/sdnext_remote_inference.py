@@ -49,9 +49,9 @@ def on_app_started(blocks, _app):
 
     # UI
     with blocks:
-        balance = gr.HTML(value='', elem_id='remote_inference_balance')
+        balance = gr.HTML(value='', visible=False, elem_classes=['remote_inference_balance'], show_progress=False)
         clicker = gr.Button(value='', visible=False, elem_id='remote_inference_balance_click')
-        clicker.click(extension.remote_balance.remote_balance_gradio_update, inputs=[], outputs=[balance], show_progress='hidden')
+        clicker.click(extension.remote_balance.remote_balance_gradio_update, inputs=[], outputs=[balance])
 
 modules.script_callbacks.on_app_started(on_app_started)
 modules.script_callbacks.after_process_callback(lambda p: extension.remote_balance.refresh_balance())

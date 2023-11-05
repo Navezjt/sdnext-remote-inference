@@ -39,6 +39,7 @@ Aimed to be universal for all providers, feel free to request other providers.
 
 ## Additional features
 - Stable Horde worker settings
+- Dynamic samplers/upscalers lists
 - API calls caching
 - Hide NSFW networks option (Stable Horde / OmniInfer)
 

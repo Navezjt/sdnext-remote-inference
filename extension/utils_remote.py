@@ -170,3 +170,19 @@ def get_image(img):
 stable_horde_client = "SD.Next Remote Inference:rolling:QuantumSoul"
 
 stable_horde_controlnets = ["canny", "hed", "depth", "normal", "openpose", "seg", "scribble", "fakescribbles", "hough"]
+
+stable_horde_samplers =  {
+    "LMS": "k_lms",
+    "Heun": "k_heun",
+    "Euler": "k_euler",
+    "Euler a": "k_euler_a",
+    "DPM2": "k_dpm_2",
+    "DPM2 a": "k_dpm_2_a",
+    "DPM fast": "k_dpm_fast",
+    "DPM adaptive": "k_dpm_adaptive",
+    "DPM++ 2S a": "k_dpmpp_2s_a",
+    "DPM++ 2M": "k_dpmpp_2m",
+    "DPM solver": "dpmsolver",
+    "DPM++ SDE": "k_dpmpp_sde",
+    "DDIM": "DDIM",
+}
