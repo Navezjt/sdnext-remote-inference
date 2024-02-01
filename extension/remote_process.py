@@ -23,7 +23,7 @@ def fake_reload_model_weights(sd_model=None, info=None, reuse_dict=False, op='mo
         checkpoint_info = info or modules.sd_models.select_checkpoint(op=op)
         opts.sd_model_checkpoint = checkpoint_info.title
         return RemoteModel(checkpoint_info)
-    except StopIteration:
+    except (StopIteration, AttributeError):
         return None
 
 def generate_images(service: RemoteService, p: StableDiffusionProcessing) -> Processed:

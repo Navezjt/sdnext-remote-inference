@@ -16,7 +16,7 @@ import extension.remote_extra_networks
 import extension.remote_process
 import extension.remote_balance
 import extension.remote_postprocess
-import extension.ui_populate
+import extension.ui_bindings
 
 import ui_extra_networks_lora
 import networks
@@ -49,13 +49,12 @@ def on_app_started(blocks, _app):
 
     # UI
     with blocks:
-        balance = gr.HTML(value='', visible=False, elem_classes=['remote_inference_balance'], show_progress=False)
-        clicker = gr.Button(value='', visible=False, elem_id='remote_inference_balance_click')
-        clicker.click(extension.remote_balance.remote_balance_gradio_update, inputs=[], outputs=[balance])
+        gr.HTML(value='', visible=False, elem_id='remote_inference_balance', show_progress=False)
+        gr.Button(value='', visible=False, elem_id='remote_inference_balance_click')
 
 modules.script_callbacks.on_app_started(on_app_started)
 modules.script_callbacks.after_process_callback(lambda p: extension.remote_balance.refresh_balance())
-modules.script_callbacks.on_after_component(lambda component, **kwargs: extension.ui_populate.bind_component(component))
+modules.script_callbacks.on_after_component(lambda component, **kwargs: extension.ui_bindings.bind_component(component))
 
 # SETTINGS
 def on_ui_settings():
@@ -81,14 +80,19 @@ def on_ui_settings():
         'omniinfer_apikey_url': OptionInfo('<p>Get an API key <a href="https://www.omniinfer.io/dashboard/key">here</a></p>', "", gr.HTML),
 
         'remote_general_sep': OptionInfo("<h2>Other Settings</h2>", "", gr.HTML),
-        'remote_inference_service': OptionInfo(RemoteService.Local.name, "Remote inference service", gr.Dropdown, {"choices": [e.name for e in RemoteService]}),
         'remote_balance_cache_time': OptionInfo(60, 'Cache time (in seconds) for remote balance api calls', gr.Slider, {"minimum": 60, "maximum": 3600, "step": 60}),
         'remote_extra_networks_cache_time': OptionInfo(600, 'Cache time (in seconds) for remote extra networks api calls', gr.Slider, {"minimum": 60, "maximum": 3600, "step": 60}),
-        'show_remote_balance': OptionInfo(True, "Show top right available balance box"),
-        'show_nsfw_models': OptionInfo(False, "Show NSFW networks (StableHorde/OmniInfer)")
+        'show_remote_balance_box': OptionInfo(True, "Show top right available balance box"),
+        'show_remote_balance_quick': OptionInfo(True, "Show quicksettings available balance"),
+        'show_nsfw_models': OptionInfo(False, "Show NSFW networks (StableHorde/OmniInfer)"),
+
+        'remote_inference_service': OptionInfo(RemoteService.Local.name, "Remote inference service", gr.Dropdown, {"choices": [e.name for e in RemoteService]}),
+        'remote_balance': OptionInfo("", "", gr.HTML),
     }))
 
     if modules.shared.opts.quicksettings_list[0] != 'remote_inference_service':
-        modules.shared.opts.quicksettings_list.insert(0, 'remote_inference_service') 
+        modules.shared.opts.quicksettings_list.insert(0, 'remote_inference_service')
+    if modules.shared.opts.quicksettings_list[1] != 'remote_balance':
+        modules.shared.opts.quicksettings_list.insert(1, 'remote_balance') 
 
 modules.script_callbacks.on_ui_settings(on_ui_settings)

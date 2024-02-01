@@ -1,5 +1,3 @@
-import gradio as gr
-
 import modules.shared
 
 from extension.utils_remote import get_current_api_service, RemoteService, get_or_error_with_cache, get_api_key, stable_horde_client, clear_cache
@@ -9,34 +7,19 @@ balance_names = {
     RemoteService.OmniInfer: ('Credits', '$')
 }
 
-last_value = None
-def remote_balance_gradio_update():
-    global last_value
-
-    value = get_remote_balance_html()
-
-    if value != last_value:
-        last_value = value
-
-        if not value:
-            return gr.HTML.update(visible=False)
-        else:
-            return gr.HTML.update(visible=True, value=value)
-    return gr.HTML.update()
-
 def get_remote_balance_html():
     service = get_current_api_service()
-    if not modules.shared.opts.show_remote_balance or service not in balance_names.keys():
+    if service not in balance_names.keys():
         return ''
 
     balance = get_remote_balance(service)
     title, symbol = balance_names[service]
 
-    return f'<p>{title}:</p><p id="remote_inference_balance_count">{symbol}{balance}</p>'
+    return f'<p>{title}:</p><p class="remote_inference_balance_count">{symbol}{balance}</p>'
 
 def refresh_balance():
     service = get_current_api_service()
-    if service == RemoteService:
+    if service == RemoteService.StableHorde:
         clear_cache(service, '/v2/find_user')
     elif service == RemoteService.OmniInfer:
         clear_cache(service, '/v3/user')
